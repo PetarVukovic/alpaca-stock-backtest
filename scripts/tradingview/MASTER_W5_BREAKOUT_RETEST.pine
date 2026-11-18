@@ -1,0 +1,84 @@
+//@version=6
+// MASTER_W5_BREAKOUT_RETEST  (lab id: SWING_W5_SR_BREAKOUT_RETEST, rule class BreakoutRetest in lab/aichain/contenders.py)
+// Research only, not advice, no orders are ever sent.
+// RULE (frozen, do not tune):
+//   1. "Resistance" = the latest CONFIRMED swing high: a high strictly above the 5 bars on each side. It is
+//      known only 5 bars after it formed.
+//   2. ARM: a close breaks above the resistance while the previous close was at or below it. The level is remembered.
+//   3. The setup is cancelled when a close falls under that level, or 40 bars pass without a retest.
+//   4. ENTRY signal (a later bar): the low comes within 1.5 percent above the level (a pullback to it) and the
+//      close is back above the level. The buy fills at the NEXT bar's open.
+//   5. Stop 3 percent under the level (a gap below it fills at the open). Exit signal: close < SMA50, sale at next open.
+// COSTS: 0.025 percent per side (2.5 bps). No slippage, FX, tax, minimum fee.
+// NOTE: the setup tracker runs on every bar (also while a trade is open) exactly like the Python engine.
+// ALERTS: TradingView ignores alertcondition() inside strategies, so information-only alert() calls are used.
+//   When you create an alert choose 'Any alert() function call'. Never pick order-fill alerts or webhooks.
+// INFO TABLE: in a strategy the table is refreshed only on a confirmed (closed) bar.
+// VERSION: 2026-10-14 v1
+// COMPILED OK 2026-10-14; behaviour not yet compared trade by trade with the Python engine
+strategy("MASTER_W5_BREAKOUT_RETEST", overlay=true, initial_capital=1000,
+     default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+     commission_type=strategy.commission.percent, commission_value=0.025,
+     process_orders_on_close=false, calc_on_every_tick=false, pyramiding=0)
+
+pivK    = input.int(5, "Okret: broj svijeća sa svake strane", minval=1)
+proxPct = input.float(1.5, "Povratak do razine: unutar % iznad razine", minval=0.1, step=0.1)
+stopPct = input.float(3.0, "Zaštitni stop: % ispod razine", minval=0.5, step=0.5)
+smaExit = input.int(50, "Izlaz: zatvaranje ispod SMA", minval=1)
+expiry  = input.int(40, "Setup istječe nakon N svijeća", minval=1)
+startT  = input.time(timestamp("2023-01-01T00:00:00"), "Trguj od (AI era; samo prozor testa)")
+
+// strict swing high confirmed pivK bars later (same definition as the Python engine, not ta.pivothigh)
+candidate = high[pivK]
+leftMax   = ta.highest(high, pivK)[pivK + 1]
+rightMax  = ta.highest(high, pivK)
+isPivot   = bar_index >= 2 * pivK and candidate > leftMax and candidate > rightMax
+var float res = na
+if isPivot
+    res := candidate
+
+var float armedLevel = na
+var int armedBar = na
+bool entrySig = false
+float sigLevel = na
+if not na(armedLevel)
+    if close < armedLevel or bar_index - armedBar > expiry
+        armedLevel := na
+    else if bar_index > armedBar and low <= armedLevel * (1 + proxPct / 100) and close > armedLevel
+        entrySig := true
+        sigLevel := armedLevel
+        armedLevel := na
+if na(armedLevel) and not entrySig and not na(res) and close > res and close[1] <= res
+    armedLevel := res
+    armedBar := bar_index
+
+sma50   = ta.sma(close, smaExit)
+inWin   = time >= startT
+flat    = strategy.position_size == 0
+buySig  = barstate.isconfirmed and inWin and flat and entrySig
+var float stopLvl = na
+if buySig
+    stopLvl := math.round_to_mintick(sigLevel * (1 - stopPct / 100))
+    strategy.entry("W5", strategy.long)
+    strategy.exit("W5 stop", "W5", stop=stopLvl)
+exitSig = strategy.position_size > 0 and barstate.isconfirmed and close < sma50
+if strategy.position_size > 0
+    strategy.exit("W5 stop", "W5", stop=stopLvl)
+if exitSig
+    strategy.close("W5", comment="W5 izlaz")
+
+plot(res, "Zadnji potvrđeni otpor", color=color.new(color.orange, 30), style=plot.style_linebr)
+plot(sma50, "SMA50", color=color.new(color.blue, 0))
+plot(strategy.position_size > 0 ? stopLvl : na, "Zaštitni stop", color=color.red, style=plot.style_linebr)
+plotshape(buySig, "Signal za kupnju (iduće otvaranje)", shape.triangleup, location.belowbar, color.green, size=size.small)
+plotshape(exitSig, "Signal za prodaju (iduće otvaranje)", shape.triangledown, location.abovebar, color.orange, size=size.small)
+var tbl = table.new(position.top_right, 1, 3)
+if barstate.islast
+    table.cell(tbl, 0, 0, "ID: SWING_W5_SR_BREAKOUT_RETEST", text_color=color.white, bgcolor=color.new(color.gray, 20))
+    table.cell(tbl, 0, 1, "Istraživanje, nije savjet. Nema naloga.", text_color=color.white, bgcolor=color.new(color.gray, 20))
+    table.cell(tbl, 0, 2, not na(armedLevel) ? "Čeka povratak do razine " + str.tostring(armedLevel, format.mintick) : (strategy.position_size > 0 ? "U poziciji" : "Nema aktivnog setupa"), text_color=color.white, bgcolor=color.new(color.gray, 20))
+
+if buySig
+    alert("W5_BREAKOUT_RETEST: dnevno zatvaranje ispunjava pravilo ulaza. Samo informacija.", alert.freq_once_per_bar_close)
+if exitSig
+    alert("W5_BREAKOUT_RETEST: dnevno zatvaranje ispod SMA50. Samo informacija.", alert.freq_once_per_bar_close)

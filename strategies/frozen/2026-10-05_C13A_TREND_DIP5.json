@@ -1,0 +1,32 @@
+{
+  "id": "C13A_TREND_DIP5",
+  "created": "2026-10-05",
+  "family": "pullback",
+  "hypothesis": "Pad od 5 % unutar rastućeg trenda (iznad 200-d prosjeka) je prilika za kupnju, ne početak rušenja.",
+  "mechanism": "Kratkoročni prodavači i prisilne prodaje daju privremeni popust unutar trenda. Razlikuje se od zatvorenog C1 jer traži trend iznad 200-d prosjeka.",
+  "persistence": "Trend-fondovi i dalje drže poziciju, a kratki pad privuče kupce po boljoj cijeni.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "dip_in_trend",
+    "trend_window": 200,
+    "dip_bars": 5,
+    "dip_pct": 0.05
+  },
+  "exit": {
+    "type": "risk",
+    "stop_pct": 0.08,
+    "hold_bars": 10
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

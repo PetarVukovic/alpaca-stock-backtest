@@ -1,0 +1,28 @@
+{
+  "id": "C16B_RELSTR126",
+  "created": "2026-10-05",
+  "family": "relative_strength",
+  "hypothesis": "Isto s 6-mjesečnim razdobljem.",
+  "mechanism": "Sporiji zamah, manje promjena vodstva i troškova.",
+  "persistence": "Isto kao C16A.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "relative_strength",
+    "lookback": 126
+  },
+  "exit": {
+    "type": "rule"
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

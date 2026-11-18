@@ -1,0 +1,130 @@
+{
+  "code_files": [
+    "lab/aichain/swing.py",
+    "lab/aichain/swing_run.py"
+  ],
+  "costs": {
+    "bps_per_side_crypto": 10.0,
+    "bps_per_side_stocks_and_metals": 2.5,
+    "stress": [
+      2,
+      3
+    ],
+    "tick": 0
+  },
+  "execution": "decide at close of day t, fill at open of day t+1, long-only, no leverage, fractional units, sleeve = one ticker with own capital, USD treated as EUR-equivalent",
+  "groups": {
+    "ai_chips_logic": [
+      "NVDA",
+      "AMD",
+      "AVGO",
+      "MRVL",
+      "TSM",
+      "INTC",
+      "ARM",
+      "TXN",
+      "MCHP",
+      "ON",
+      "QCOM"
+    ],
+    "cloud": [
+      "MSFT",
+      "AMZN",
+      "GOOGL",
+      "META",
+      "ORCL",
+      "NBIS",
+      "VRT"
+    ],
+    "crypto": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "SOLUSDT"
+    ],
+    "equipment": [
+      "AMAT",
+      "LRCX",
+      "KLAC",
+      "ASML",
+      "ONTO",
+      "MKSI",
+      "ENTG",
+      "ACMR",
+      "FORM",
+      "TER"
+    ],
+    "mem_interface_storage": [
+      "RMBS",
+      "SIMO",
+      "MRAM",
+      "NTAP"
+    ],
+    "memory": [
+      "MU",
+      "WDC",
+      "STX"
+    ],
+    "metali_referentno": [
+      "GLD",
+      "SLV"
+    ],
+    "network_servers": [
+      "ANET",
+      "CRDO",
+      "ALAB",
+      "COHR",
+      "LITE",
+      "SMCI",
+      "DELL",
+      "HPE"
+    ]
+  },
+  "id": "SWING_W8_IBS_REVERT",
+  "interpretations": [
+    "Pivot: low (high) strictly below (above) the 5 bars on each side, usable only 5 bars after it formed.",
+    "Trade normalisation: a trade return times 1.000 EUR is the 'expectancy in EUR on 1.000 EUR' (trades do not compound).",
+    "W3 decides on Friday close (Sunday close for crypto) and fills at the next open; a week with a holiday Friday has no decision.",
+    "W3 ranks inside the peer group (segment, crypto, metals); 'stocks_all' pools the segment sleeves, it does not re-rank.",
+    "W4 zone qualification, touch definition and expiry, and W6/W7 completions are written in each contender's rules and are fixed.",
+    "W6 half exit is modelled as a real partial sale at the target (half of the units); the rest is trailed under the prior 10-bar low.",
+    "ATR14 is the simple mean of the true range over 14 bars.",
+    "If stop and target are touched in one bar the stop is assumed first. Time exits fill at the next open.",
+    "All tickers use the common end 2026-10-05 (crypto and metals too) so groups are comparable.",
+    "Sharpe uses sqrt(252) for every group, including crypto (which trades every calendar day)."
+  ],
+  "label": "pre-registered contender",
+  "params": {
+    "ibs_in": 0.2,
+    "ibs_out": 0.8,
+    "max_bars": 5,
+    "sma": 200
+  },
+  "perturbed_thresholds": [
+    "ibs_in",
+    "sma",
+    "ibs_out",
+    "max_bars"
+  ],
+  "rules": [
+    "IBS = (close-low)/(high-low). Buy at the next open when IBS < 0.2 and close > SMA200; exit when IBS > 0.8 or after 5 bars."
+  ],
+  "status": "research only; not a lab Critic PASS; no tuning",
+  "windows": {
+    "ai_era": [
+      "2023-01-01",
+      "2026-10-05"
+    ],
+    "full": [
+      "2016-01-01",
+      "2026-10-05"
+    ],
+    "y2016_2020": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "y2021_2022": [
+      "2021-01-01",
+      "2022-12-31"
+    ]
+  }
+}

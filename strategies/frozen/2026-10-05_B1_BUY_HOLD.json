@@ -1,0 +1,28 @@
+{
+  "id": "B1_BUY_HOLD",
+  "created": "2026-10-05",
+  "family": "baseline",
+  "hypothesis": "Osnovna linija: kupi jednom i drži.",
+  "mechanism": "Nije hipoteza, nego mjerilo kojim se mjeri sve ostalo.",
+  "persistence": "MU je od 2016. narastao oko 74 puta, pa je ovo visoka letvica.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX",
+    "SMH"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "buy_hold"
+  },
+  "exit": {
+    "type": "hold"
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

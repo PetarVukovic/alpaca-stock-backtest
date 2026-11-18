@@ -1,0 +1,73 @@
+{
+  "code_file": "lab/crypto_dt/strategies/cdt_h2_trend_4h_crowd.py",
+  "code_sha256": "3d73dbb208e35ec624a1c9ef3799e08443fe1e9325860e2351ea44f94ea0edb0",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "BTCUSDT": "022b81a0e7a9a8695f76fbb25fa664f7f82456981a5132a6b3c1fb9648173048",
+    "BTCUSDT_funding": "b4ec95081566bb19cf4709bf949aa435710dc126a0f6556a81831e40c6a9b8f8",
+    "BTCUSDT_metrics_5m": "ff299cb8b2038b4bd739687bfd34fe17c7af0b9a786fc729ff17f3f8d3cd594f",
+    "ETHUSDT": "00ca763608fd14e435fa4ad68381ed66d1e63433749474a83290fb7ba3792265",
+    "ETHUSDT_funding": "dde9afe7dc5d191ff486484de3564b31127a258a5d7f8c9d18de016e02a989e0",
+    "ETHUSDT_metrics_5m": "f9304d31a2acae0b4c8d50a9312211b84d5d236a8b24a40077915e21893b35a5",
+    "SOLUSDT": "f6dfc1d2d571286e90e70d43ba093e7974dfef3ea0120b1bf184a74455f700ed",
+    "SOLUSDT_funding": "d475ebcf87e290d17c6975f4142059b29c18bf747797a15d86b435b4cc7042f0",
+    "SOLUSDT_metrics_5m": "8ba526c3a22369c218c3553d54036ae3e45654cf934fc77049b789a502c14703"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "Extremely positive funding together with fast open-interest growth marks crowded long positioning, and such peaks tend to end in liquidation cascades. Standing aside from the trend while both are extreme should cut drawdowns. Evidence is anecdotal (K33, BitMEX reports), so this is original work with a high overfitting risk.",
+  "id": "CDT_H2_TREND_4H_CROWD",
+  "params": {
+    "exit_ratio": 0.5,
+    "funding_pct": 0.95,
+    "funding_win": 270,
+    "n_fast": 20,
+    "n_mid": 40,
+    "n_slow": 80,
+    "oi_chg_bars": 42,
+    "oi_pct": 0.9,
+    "oi_win_days": 180,
+    "sigma_target": 0.5,
+    "vol_window": 90
+  },
+  "preregistration": "docs/research/CRYPTO_DT_PREREGISTRATION.md",
+  "preregistration_sha256": "7afc2e0bf92936d55ce9a4a7351af4f857b304c1c5cf0c42c817720d5dd1a0c1",
+  "rules": [
+    "Trend score and sizing exactly as CDT_H1_TREND_4H.",
+    "Gate per asset at each 4h close: funding percentile rank (latest settled rate within the last 270 settlements) >= 0.95 AND open-interest 42-bar change percentile rank (within the last 180 days) >= 0.90.",
+    "While the gate is true the asset weight is 0. While history is too short for either percentile the gate is inactive.",
+    "Derivatives are aligned causally: a 5-minute metrics snapshot stamped ts is usable from ts + 5 min, funding from its settlement time.",
+    "Decide at the bar close, fill at the next bar open, long-only, no leverage."
+  ],
+  "split_kind": "crypto",
+  "splits": {
+    "HO": [
+      "2025-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2021-01-01",
+      "2022-12-31"
+    ],
+    "WF": [
+      "2023-01-01",
+      "2024-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "structure": null,
+  "support_sha256": {
+    "data.py": "1b0c159ff0c88954cb600ab84922e97a22a20225e25a5322fc1b566f12e6955c",
+    "features.py": "66537e5ccc895ea793f693b60e6f9c5fd0c84f39a15d1c1cb3d86092b74e6cbd",
+    "run.py": "f55918f9b49c0939c6487dd35222657a866ed0d8de925070b3dff28d30bb50ff"
+  },
+  "timeframe": "4h",
+  "universe": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT"
+  ]
+}

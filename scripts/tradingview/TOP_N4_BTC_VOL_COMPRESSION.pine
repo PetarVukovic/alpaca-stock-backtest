@@ -1,0 +1,69 @@
+// COMPILED OK on the TradingView server (2026-10-14); behaviour not yet compared trade by trade with the lab engine.
+// ID: TOP_N4_BTC_VOL_COMPRESSION - research replica of the frozen lab rule. Not a Critic PASS, not a trade recommendation.
+// Daily chart. Add it once on BINANCE:BTCUSDT and once on BINANCE:ETHUSDT (one equal slot = 50 percent of capital per asset).
+// Execution model identical to the lab: decide at the close of bar t, fill at the open of bar t+1, long-only, no leverage.
+// Cost: lab crypto cost is 10 bps per side -> commission 0.10 percent per order.
+// Known small difference: ta.percentrank looks at the PREVIOUS pct_window bars (excludes the current one); the lab ranks
+// within a window that includes the current value. Both are read one bar back, so the breakout bar never sets the signal.
+//@version=6
+strategy("TOP_N4_BTC_VOL_COMPRESSION", overlay=true, initial_capital=100000,
+     default_qty_type=strategy.percent_of_equity, default_qty_value=50,
+     commission_type=strategy.commission.percent, commission_value=0.10,
+     process_orders_on_close=false, calc_on_every_tick=false, pyramiding=0)
+
+// ---- Inputs = PARAMS defaults of the frozen module ----
+breakoutLen = input.int(20,    "Breakout lookback (bars)", minval=1)
+volWindow   = input.int(20,    "Volatility window",        minval=2)
+pctWindow   = input.int(250,   "Percentile window",        minval=20)
+pctMax      = input.float(0.30, "Max volatility percentile", step=0.05)
+atrLen      = input.int(14,    "ATR length",               minval=1)
+atrMult     = input.float(3.0, "ATR stop multiple",        step=0.1)
+trendLen    = input.int(100,   "Trend SMA length",         minval=2)
+
+// ---- Rule: realized volatility = population stdev of daily log returns ----
+logRet  = math.log(close / close[1])
+vol     = ta.stdev(logRet, volWindow, false)            // biased = false -> population (ddof=0) as in the lab
+volPct  = ta.percentrank(vol, pctWindow) / 100.0         // share of earlier values <= current
+volPctPrev = volPct[1]                                   // compression is read as of the PREVIOUS bar
+
+// ---- Rule: trend, breakout, ATR ----
+sma       = ta.sma(close, trendLen)
+priorHigh = ta.highest(high, breakoutLen)[1]             // highest high of the previous bars, excludes today
+atr       = ta.sma(ta.tr, atrLen)                        // simple average of true range, as in the lab
+
+// ---- Rule: entry (flat) ----
+enterSignal = strategy.position_size == 0 and close > priorHigh and volPctPrev <= pctMax and close > sma
+
+// ---- Rule: exit (held) - close-based trailing stop that only moves up, or close below trend SMA ----
+var float peakClose = na
+if enterSignal
+    peakClose := close
+if strategy.position_size > 0
+    peakClose := math.max(nz(peakClose, close), close)
+stopLevel  = peakClose - atrMult * atr
+exitSignal = strategy.position_size > 0 and (close <= stopLevel or close < sma)
+
+// Orders are queued at the close and filled at the next bar open. No alerts that send orders are created.
+if enterSignal
+    strategy.entry("Long", strategy.long)
+if exitSignal
+    strategy.close("Long")
+
+// ---- Plots ----
+plot(sma, "Trend SMA", color=color.new(color.orange, 0))
+plot(strategy.position_size > 0 ? stopLevel : na, "ATR trailing stop", color=color.new(color.red, 0), style=plot.style_linebr)
+plotshape(enterSignal, "Entry signal", shape.triangleup, location.belowbar, color.green, size=size.small)
+plotshape(exitSignal,  "Exit signal",  shape.triangledown, location.abovebar, color.red, size=size.small)
+bgcolor(volPctPrev <= pctMax ? color.new(color.blue, 90) : na, title="Compressed volatility")
+
+// ---- Info table ----
+var table info = table.new(position.top_right, 2, 4, border_width=1)
+if barstate.islast
+    table.cell(info, 0, 0, "ID", text_color=color.white, bgcolor=color.gray)
+    table.cell(info, 1, 0, "TOP_N4_BTC_VOL_COMPRESSION", text_color=color.white, bgcolor=color.gray)
+    table.cell(info, 0, 1, "Vol percentile (prev bar)")
+    table.cell(info, 1, 1, str.tostring(volPctPrev, "#.##"))
+    table.cell(info, 0, 2, "Close vs SMA")
+    table.cell(info, 1, 2, close > sma ? "above" : "below")
+    table.cell(info, 0, 3, "Status")
+    table.cell(info, 1, 3, strategy.position_size > 0 ? "long" : "flat")

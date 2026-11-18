@@ -1,0 +1,74 @@
+{
+  "amendment": "docs/research/CRYPTO_DT_PREREGISTRATION_AMENDMENT_1.md",
+  "code_file": "lab/crypto_dt/strategies/cdt_h2q_trend_4h_crowd_qtl.py",
+  "code_sha256": "1a07d0c3b37c1d262c299a265b3d16204d9f96af589ceba4824b11ddbb6ba369",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "BTCUSDT": "022b81a0e7a9a8695f76fbb25fa664f7f82456981a5132a6b3c1fb9648173048",
+    "BTCUSDT_funding": "b4ec95081566bb19cf4709bf949aa435710dc126a0f6556a81831e40c6a9b8f8",
+    "BTCUSDT_metrics_5m": "ff299cb8b2038b4bd739687bfd34fe17c7af0b9a786fc729ff17f3f8d3cd594f",
+    "ETHUSDT": "00ca763608fd14e435fa4ad68381ed66d1e63433749474a83290fb7ba3792265",
+    "ETHUSDT_funding": "dde9afe7dc5d191ff486484de3564b31127a258a5d7f8c9d18de016e02a989e0",
+    "ETHUSDT_metrics_5m": "f9304d31a2acae0b4c8d50a9312211b84d5d236a8b24a40077915e21893b35a5",
+    "SOLUSDT": "f6dfc1d2d571286e90e70d43ba093e7974dfef3ea0120b1bf184a74455f700ed",
+    "SOLUSDT_funding": "d475ebcf87e290d17c6975f4142059b29c18bf747797a15d86b435b4cc7042f0",
+    "SOLUSDT_metrics_5m": "8ba526c3a22369c218c3553d54036ae3e45654cf934fc77049b789a502c14703"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "Same idea as CDT_H2_TREND_4H_CROWD: stand aside from the slow 4h trend while funding AND open-interest growth are both extreme (crowded longs). CDT_H2 compared a percentile RANK with 0.95 / 0.90, which differs from the pre-registered 'value >= 95th / 90th percentile of the trailing window' when values repeat (funding often sits at its 0.01% baseline). This ID implements the registered text literally; see docs/research/CRYPTO_DT_PREREGISTRATION_AMENDMENT_1.md.",
+  "id": "CDT_H2Q_TREND_4H_CROWD_QTL",
+  "params": {
+    "exit_ratio": 0.5,
+    "funding_pct": 0.95,
+    "funding_win": 270,
+    "n_fast": 20,
+    "n_mid": 40,
+    "n_slow": 80,
+    "oi_chg_bars": 42,
+    "oi_pct": 0.9,
+    "oi_win_days": 180,
+    "sigma_target": 0.5,
+    "vol_window": 90
+  },
+  "preregistration": "docs/research/CRYPTO_DT_PREREGISTRATION.md",
+  "preregistration_sha256": "7afc2e0bf92936d55ce9a4a7351af4f857b304c1c5cf0c42c817720d5dd1a0c1",
+  "rules": [
+    "Trend score and sizing exactly as CDT_H1_TREND_4H.",
+    "Gate per asset at each 4h close: latest settled funding rate >= the 95th percentile (pandas linear interpolation) of its trailing 270 settlements AND the 42-bar open-interest change >= the 90th percentile of its trailing 180 days (window includes the current value).",
+    "While the gate is true the asset weight is 0. While history is too short for either percentile the gate is inactive.",
+    "A 5-minute metrics snapshot stamped ts is usable from ts + 5 min and only if it is at most 15 min old at that point; funding from its settlement time.",
+    "Decide at the bar close, fill at the next bar open, long-only, no leverage."
+  ],
+  "split_kind": "crypto",
+  "splits": {
+    "HO": [
+      "2025-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2021-01-01",
+      "2022-12-31"
+    ],
+    "WF": [
+      "2023-01-01",
+      "2024-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "structure": null,
+  "support_sha256": {
+    "data.py": "1b0c159ff0c88954cb600ab84922e97a22a20225e25a5322fc1b566f12e6955c",
+    "features.py": "66537e5ccc895ea793f693b60e6f9c5fd0c84f39a15d1c1cb3d86092b74e6cbd",
+    "run.py": "7a51e82733d5b6fee4bc9e9ebebdcadbd6590d82420b7297f5bfc6c8b2cd7c8b"
+  },
+  "timeframe": "4h",
+  "universe": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT"
+  ]
+}

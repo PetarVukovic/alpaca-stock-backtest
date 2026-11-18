@@ -1,0 +1,128 @@
+{
+  "id": "C36_METALS_ADV_20261013",
+  "engine_contract": "METALS_ADV_V1",
+  "status": "RESEARCH_ONLY_SIGNALS_SIMULATION",
+  "hypotheses": {
+    "KAMA": "Adaptive smoothing may reduce whipsaw from noisy hedging flows while retaining persistent repricing; not established edge in these assets.",
+    "ENSEMBLE": "Different repricing horizons may favor a diversified trend vote; volatility clustering motivates reduced exposure, not return prediction.",
+    "ROTATE": "Gold and silver react differently to monetary and industrial demand; relative persistence may justify buffered rotation, but only two correlated assets limits diversification."
+  },
+  "rules": {
+    "KAMA": {
+      "er": 10,
+      "fast": 2,
+      "slow": 30,
+      "seed": "SMA first 10 closes at index9",
+      "smoothing": "(ER*(2/3-2/31)+2/31)^2",
+      "entry": "close>KAMA and KAMA>KAMA.shift(5)",
+      "weight": ".5*min(1,.10/vol20) per eligible asset",
+      "schedule": "first available session of ISO week"
+    },
+    "ENSEMBLE": {
+      "lookbacks": [
+        50,
+        100,
+        200
+      ],
+      "score": "sum(close>SMA_n)/3; all longest lookback available else0",
+      "weight": ".5*score*min(1,.10/vol60) per asset",
+      "schedule": "first available session of ISO week"
+    },
+    "ROTATE": {
+      "momentum": 126,
+      "trend_sma": 200,
+      "eligibility": "close>SMA200 and close/close.shift(126)-1>0",
+      "selection": "highest126return; retain eligible incumbent unless challenger higher by >.02 absolute",
+      "weight": "min(1,.10/vol60) winner only",
+      "schedule": "first available session of month",
+      "incumbent": "signal-model state from full prior history, does not imply preexisting position at segment restart"
+    }
+  },
+  "volatility": "sample std log EUR close returns *sqrt252, nonpositive/nonfinite ->weight0",
+  "execution": "previous completed close features; next scheduled open; integer shares floor(weight*opening equity/open); sell before buy; affordability includes costs; GLD/PHAU before SLV/PHAG tie/order; no leverage/short; no stops between rebalances; terminal close liquidation modeled with same costs",
+  "currency": "USD proxy converted with strictly previous available ECB USD/EUR, <=7calendar days; EUR ETC direct; lagged FX approximation not actual FX executions",
+  "costs": {
+    "commission_eur_min": 3,
+    "commission_rate": 0.0005,
+    "friction_per_side": 0.0005,
+    "basis": "model fixed SMART EU schedule; excludes tax, data subscription; not actual executed fees"
+  },
+  "capital_eur": [
+    500,
+    1000,
+    2000
+  ],
+  "variants": {
+    "BASE": {
+      "cost": 1,
+      "lookbacks": 1
+    },
+    "COST2": {
+      "cost": 2,
+      "lookbacks": 1
+    },
+    "COST3": {
+      "cost": 3,
+      "lookbacks": 1
+    },
+    "PARAM08": {
+      "cost": 1,
+      "lookbacks": 0.8
+    },
+    "PARAM12": {
+      "cost": 1,
+      "lookbacks": 1.2
+    }
+  },
+  "sensitivity": "all family lookbacks jointly rounded(scale*lookback); KAMA fast2 fixed; targetvol.10 and rotationbuffer.02 fixed; not one-at-a-time full sensitivity",
+  "datasets": {
+    "PROXY": {
+      "symbols": [
+        "GLD",
+        "SLV"
+      ],
+      "currency": "USD",
+      "IS": [
+        "2016-10-13",
+        "2020-12-31"
+      ],
+      "WF": [
+        "2021-01-01",
+        "2023-12-31"
+      ],
+      "EXPOSED": [
+        "2024-01-01",
+        "2026-10-12"
+      ],
+      "FULL": [
+        "2016-10-13",
+        "2026-10-12"
+      ]
+    },
+    "IBKR": {
+      "symbols": [
+        "PHAU",
+        "PHAG"
+      ],
+      "currency": "EUR",
+      "DIAGNOSTIC": [
+        "2025-10-01",
+        "2026-10-12"
+      ],
+      "conditional": "SMART TWO_YEARS 509 completed bars from2024-10-14; fresh metadata, structural validation, no decade claim"
+    }
+  },
+  "selection": "rank BASE WF Sharpe at EUR1000 only; eligible IS and WF returns>0, WF DD<=.25, at least10 sell events IS andWF, COST2 WF return>0, both PARAM08/PARAM12 WF returns>0. Sell events include partial rebalances, NOT independent roundtrips; full Critic minimum independent sample not established. Freeze ranking before EXPOSED/FULL/IBKR. If none eligible report none, may show descriptive rank.",
+  "validation_boundary": "All historical data previously seen. EXPOSED is reused history, not untouched holdout. No promotional Critic PASS inferred. No optimization after outcomes.",
+  "benchmark": [
+    "BUYHOLD50_50 whole units samecost",
+    "CASH0 interest"
+  ],
+  "planned_strategy_scenarios": 90,
+  "prohibited": [
+    "orders",
+    "change approved_list",
+    "live recommendations"
+  ],
+  "data_only_amendment": "Before any performance simulation: replace conditional2023-09-01 diagnostic start by2025-10-01 because5Y metadata inconsistent; use verified2Y snapshot and sufficient240bar warmup. No strategy/cost change."
+}

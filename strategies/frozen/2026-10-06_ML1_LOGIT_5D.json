@@ -1,0 +1,28 @@
+{
+  "id": "ML1_LOGIT_5D",
+  "created": "2026-10-06",
+  "family": "ml_logit",
+  "hypothesis": "Kratkoročni zamah i kolebanje donose slabu naznaku smjera.",
+  "mechanism": "Logistička regresija koristi samo ret_1d, ret_5d, ret_20d, vol_10/vol_60 i udaljenost od SMA200, sve pomaknuto za jedan bar. Cilj je pozitivan close-to-close povrat za 5 dana. IS godišnje proširivo učenje iz prethodnih godina; konačni model samo IS 2016–2020, zaključan za WF i HO. Purge posljednjih pet trening barova; standardizacija samo treningom; minimalno 100 redaka; Logit maxiter=100, bez pretraživanja parametara. Signal p>0.55, sljedeće otvaranje, izlaz nakon 5 barova. Dijagnostike hold 4/6 i 2x trošak samo IS/WF; HO jednom.",
+  "persistence": "Neprovjerena slaba naznaka; jedan model po dionici, isti unaprijed zadani postupak. Trgovine i cilj imaju različite cijene izvršenja. Istraživanje, nije signal za nalog.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "ml_logit"
+  },
+  "exit": {
+    "type": "time",
+    "hold_bars": 5
+  },
+  "max_notional_usd": 500,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5,
+    "tick_per_side": 1,
+    "stress_multiplier": 1
+  }
+}

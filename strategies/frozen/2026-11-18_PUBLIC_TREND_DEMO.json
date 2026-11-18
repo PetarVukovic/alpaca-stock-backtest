@@ -1,0 +1,15 @@
+{
+  "id": "PUBLIC_TREND_DEMO",
+  "created": "2026-11-18",
+  "family": "trend",
+  "hypothesis": "A long moving-average filter changes directional exposure.",
+  "mechanism": "Hold above the trailing average and move to cash below it.",
+  "persistence": "Demonstration only. Evaluate on a separately frozen sample.",
+  "universe": ["AAPL"],
+  "timeframe": "daily",
+  "entry": {"type": "trend", "trend_window": 50},
+  "exit": {"type": "trend", "trend_window": 50},
+  "max_notional_usd": 500,
+  "max_positions": 1,
+  "costs": {"round_trip_bps": 5, "tick_per_side": 1, "stress_multiplier": 1}
+}

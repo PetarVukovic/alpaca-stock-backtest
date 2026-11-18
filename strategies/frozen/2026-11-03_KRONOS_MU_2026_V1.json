@@ -1,0 +1,40 @@
+{
+  "id": "KRONOS_MU_2026_V1",
+  "registered_at": "2026-11-03T13:20:27.641052+00:00",
+  "status": "exploratory historical 2026 simulation; NOT Critic PASS",
+  "hypothesis": "A frozen financial-series model may capture persistent multi-day price/flow patterns and filter negative-return windows; counterparty mechanism is unproven, no durable edge assumed.",
+  "instrument": "MU US common stock USD; IBKR contract found, user account permissions and EU/HR tax treatment unconfirmed",
+  "source": "data/ohlcv/MU_1d.csv",
+  "source_sha256": "fdedb4cb163bfc889b7d9e3658caad81407fe7624211ecbe009ee2b2150625c3",
+  "model": "NeoQuasar/Kronos-small",
+  "model_revision": "901c26c1332695a2a8f243eb2f37243a37bea320",
+  "tokenizer": "NeoQuasar/Kronos-Tokenizer-base",
+  "tokenizer_revision": "0e0117387f39004a9016484a186a908917e22426",
+  "lookback": 90,
+  "horizon": 10,
+  "step": 10,
+  "temperature": 0.6,
+  "top_p": 0.9,
+  "sample_count": 20,
+  "seed_rule": "20261103 + window_index; fixed before generation",
+  "signal": "forecast final close > last observed close -> simulated long; otherwise cash; no fees threshold or tuning",
+  "entry": "next session open plus tick, proportional commission",
+  "exit": "close of tenth session minus tick, proportional commission; no early exits",
+  "size": "100% cash, fractional units, no leverage, long only; compound net proceeds",
+  "cash": "USD cash; no interest; starting EUR converted once at illustrative fixed 1.10 USD/EUR; terminal conversion at same rate; taxes/dividends/FX fees excluded",
+  "evaluation": "2026-01-02 to last local bar 2026-10-08; consecutive complete 10-session blocks; incomplete tail held in cash; no retuning, no model retraining",
+  "costs": {
+    "bps_per_side": 2.5,
+    "tick_per_share_side": 0.01,
+    "stress_multipliers": [
+      1,
+      1.5,
+      2,
+      3
+    ]
+  },
+  "benchmark": "buy first 2026 session open, hold through last available close, identical costs and fixed FX",
+  "known_exposure": "2026 overall buy-hold and final 10 days already inspected; exploratory, not pristine holdout",
+  "pipeline_limit": "IS 2016-2020 / WF 2021-2023 not clean unseen data for pretrained Kronos; full Critic not completed; approved_list unchanged",
+  "preregistration": "one strategy variant; stress diagnostics not optimized; record all results"
+}

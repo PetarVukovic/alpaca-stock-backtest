@@ -1,0 +1,77 @@
+//@version=6
+// COMPILED OK on the TradingView server (2026-10-14); behaviour not yet compared trade by trade with the lab engine. Research only; no order-routing alerts.
+// Signal replica for an equity/ETF leg of the Python basket, not portfolio P&L parity.
+// Use a daily GLD/SLV/MU/WDC/STX/SMH chart. Crypto signals are sampled on that equity calendar.
+// Python rebalances the whole account at actual next opens; here quantity is estimated at the close.
+// Local WDC spin-off-adjusted CSV and TradingView history can differ. No EUR conversion is modeled.
+strategy("TOP_C1_TSMOM_MULTI — jedna sastavnica", overlay=true, initial_capital=10000,
+     commission_type=strategy.commission.percent, commission_value=0.025,
+     process_orders_on_close=false, calc_on_every_tick=false, pyramiding=100, margin_long=100)
+
+lookback = input.int(252, "Godišnje razdoblje (barovi)", minval=2)
+skip = input.int(21, "Preskočeni posljednji barovi", minval=1)
+threshold = input.float(0.0, "Prag povrata (0 = nula)")
+leg = input.string("MU", "Sastavnica grafikona", options=["GLD", "SLV", "MU", "WDC", "STX", "SMH"])
+if not timeframe.isdaily or timeframe.multiplier != 1 or syminfo.type == "crypto"
+    runtime.error("Koristi dnevni dionički/ETF grafikon; kripto izvršenje nije dio ove pojedinačne replike.")
+if syminfo.ticker != leg
+    runtime.error("Odabrana sastavnica mora odgovarati simbolu grafikona.")
+if skip >= lookback
+    runtime.error("Preskočeno razdoblje mora biti kraće od godišnjeg.")
+
+// Fetch first, then calculate on the host equity-session calendar; no future data.
+gld = request.security("AMEX:GLD", "D", close, gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+slv = request.security("AMEX:SLV", "D", close, gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+btc = request.security("BINANCE:BTCUSDT", "D", close, gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+eth = request.security("BINANCE:ETHUSDT", "D", close, gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+mu = request.security("NASDAQ:MU", "D", close, gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+wdc = request.security("NASDAQ:WDC", "D", close, gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+stx = request.security("NASDAQ:STX", "D", close, gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+smh = request.security("NASDAQ:SMH", "D", close, gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+common = not na(gld) and not na(slv) and not na(mu) and not na(wdc) and not na(stx) and not na(smh)
+
+// Keep only common equity sessions, matching the Python lookback units.
+var history = matrix.new<float>(0, 8)
+var float target = 0.0
+var int previousWeek = na
+bool decision = false
+float momentum = na
+if common and barstate.isconfirmed
+    matrix.add_row(history, matrix.rows(history), array.from(gld, slv, btc, eth, mu, wdc, stx, smh))
+    if matrix.rows(history) > lookback + 1
+        matrix.remove_row(history, 0)
+    weekKey = year * 100 + weekofyear
+    decision := na(previousWeek) or weekKey != previousWeek
+    previousWeek := weekKey
+    if decision
+        target := 0.0
+        if matrix.rows(history) == lookback + 1
+            active = 0
+            ownEligible = false
+            legIndex = leg == "GLD" ? 0 : leg == "SLV" ? 1 : leg == "MU" ? 4 : leg == "WDC" ? 5 : leg == "STX" ? 6 : 7
+            for i = 0 to 7
+                value = matrix.get(history, lookback - skip, i) / matrix.get(history, 0, i) - 1
+                eligible = not na(value) and value > threshold
+                active += eligible ? 1 : 0
+                if i == legIndex
+                    ownEligible := eligible
+                    momentum := value
+            target := ownEligible and active > 0 ? 1.0 / active : 0.0
+
+// Same weekly target, restored daily. A one-leg account cannot reproduce basket equity sizing.
+if common and barstate.isconfirmed
+    desired = math.max(strategy.equity, 0) * target / close
+    difference = desired - strategy.position_size
+    if difference > 0
+        strategy.order("Dopuna", strategy.long, qty=difference, disable_alert=true)
+    else if difference < 0
+        strategy.order("Smanjenje", strategy.short, qty=math.min(-difference, strategy.position_size), disable_alert=true)
+plot(target * 100, "Ciljani udio (%)", display=display.data_window)
+plot(momentum * 100, "Povrat bez zadnjeg mjeseca (%)", display=display.data_window)
+plotshape(decision and target > 0, title="Tjedno držanje", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(decision and target == 0, title="Tjedno bez pozicije", style=shape.xcross, location=location.abovebar, color=color.orange, size=size.tiny)
+var info = table.new(position.top_right, 1, 3)
+if barstate.islast
+    table.cell(info, 0, 0, "TOP_C1_TSMOM_MULTI")
+    table.cell(info, 0, 1, "istraživanje · jedna sastavnica")
+    table.cell(info, 0, 2, "Dnevno · cilj " + str.tostring(target * 100, "#.##") + "% · nije preporuka")

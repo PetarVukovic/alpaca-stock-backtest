@@ -1,0 +1,28 @@
+{
+  "id": "H5A_OPEN_REVERSAL_05",
+  "created": "2026-10-05",
+  "family": "day_trade",
+  "hypothesis": "Kad WDC ili STX u prvih 30 minuta padne za barem 0.5 %, dio pada se do zatvaranja sesije vrati.",
+  "mechanism": "Prvi pola sata nakon otvaranja često je pretjerano: nalozi preko noći i likvidnost 'preskoče' cijenu, pa se dio pomaka djelomično poništava (kao gumica). Istraživanje (day_behaviour.md) našlo je slabu negativnu vezu prvih 30 min i ostatka dana za WDC (r = -0,068, isti predznak u sva tri razdoblja, prolazi korekciju za višestruke testove).",
+  "persistence": "Slabo: učinak je blizu troška (~13 bps nasuprot ~6 bps). Test služi da se potvrdi ili odbaci uz 5-minutne podatke.",
+  "universe": [
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "5min",
+  "entry": {
+    "type": "open_reversal",
+    "drop_pct": 0.005
+  },
+  "exit": {
+    "type": "risk",
+    "stop_pct": 0.02
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

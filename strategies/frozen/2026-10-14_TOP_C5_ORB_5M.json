@@ -1,0 +1,55 @@
+{
+  "code_file": "lab/top10/strategies/top_c5_orb_5m.py",
+  "code_sha256": "a63178f5534c3b3f25088dbfd78bfa3ee4be3827286b6f04ee66652c0f7da062",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "MU": "38a04cbb6aba01657ee69996ed41219e45f45417dd59c430ea5b7b60c72380ea",
+    "STX": "2f5039a4126bcee76d0935afe2a6964a4808b6598a652b38a665a422ce43357f",
+    "WDC": "7601c13aa7687b7583760c6078bd425125cf8f64e5e69ef3e3cfcce4f7d5b1e3"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "The first half hour aggregates overnight information. A confirmed break above that range while above session VWAP may identify persistent intraday buying in liquid memory stocks, without relying on overnight price changes.",
+  "id": "TOP_C5_ORB_5M",
+  "params": {
+    "early_flat_time": "12:55",
+    "flat_time": "15:55",
+    "max_entries": 1,
+    "opening_bars": 6
+  },
+  "rules": [
+    "Use UTC five-minute timestamps converted to America/New_York; regular session only, 09:30 to 16:00.",
+    "Build the opening high and low from the first six consecutive five-minute bars starting at 09:30; incomplete opening ranges cannot trade.",
+    "After that range, enter at the next open on a close above both its high and session cumulative typical-price VWAP, provided the current low stays above the range low.",
+    "One entry per ticker per session. Once held, a bar low at or below the opening low triggers exit at the NEXT open, not a guaranteed stop fill at the range low.",
+    "Reserve one equal capital slot per universe member; unused slots remain cash. No leverage or short positions.",
+    "Set weights to zero at 15:50 and later, so next-open liquidation is at 15:55; weights are also zero outside regular hours and on a new session until an entry.",
+    "Conservatively liquidate at 12:55 on July 2/3, December 24, and the Friday after the fourth Thursday of November; signal zero at 12:50. This also shortens some full sessions, by design, without reading future bars.",
+    "Use positive observed volume for VWAP; missing opening bars or zero-volume opening bars invalidate the opening range. No use of full-day counts or future last-bar detection."
+  ],
+  "split_kind": "equity",
+  "splits": {
+    "HO": [
+      "2024-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "timeframe": "5m",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ]
+}

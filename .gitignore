@@ -10,3 +10,17 @@ reports/
 *.jsonl
 *.parquet
 .DS_Store
+
+# Local datasets and generated evidence
+!/data/
+!/reports/
+data/**
+reports/**
+!data/*/
+!reports/*/
+!data/*/.gitkeep
+!reports/*/.gitkeep
+!data/README.md
+!reports/README.md
+!strategies/frozen/*.json
+*.log

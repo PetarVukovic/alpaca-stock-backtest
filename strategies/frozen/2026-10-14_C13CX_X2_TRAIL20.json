@@ -1,0 +1,20 @@
+{
+  "acceptance_rule": "A variant counts as an improvement only if, versus the original C13C on the 43-stock pool, expectancy per trade AND profit factor are higher in both AI-era halves (2023-2024 and 2025-2026), total return is not lower in 2021-2022, and expectancy stays positive at 2x costs.",
+  "base": "contenders.C13C (K1_C13C_ORIG), one change only",
+  "code_files": [
+    "lab/aichain/c13c_variants.py"
+  ],
+  "execution": "decide at close of day t, fill at open of t+1, long only, no leverage, 2.5 bps per side, fractional units, one sleeve per ticker",
+  "id": "C13CX_X2_TRAIL20",
+  "idea": "Trailing stop 20 % below the peak: lets winners run, accepts deeper pullbacks.",
+  "label": "pre-registered improvement variant of C13C",
+  "params": {
+    "dip": 0.05,
+    "dip_bars": 5,
+    "mean": 20,
+    "reentry": false,
+    "sma": 200,
+    "trail": 0.2
+  },
+  "status": "research only; not a lab Critic PASS; no tuning"
+}

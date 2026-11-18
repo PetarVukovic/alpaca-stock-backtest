@@ -1,0 +1,47 @@
+{
+  "code_file": "lab/top10/strategies/top_c4_gold_silver_ratio.py",
+  "code_sha256": "3436bda943b46b7fea7160c23b708a87ab286094f62f7b0eb09a838c19b42c81",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "GLD": "7b03688892549854d422069e522a829e81efadafcb16be9cc15a20ee8717190b",
+    "SLV": "9dc4736cc7e48631cde884e5eea96b190dd8737cd671716dee2bef8e20e95ea4"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "Gold and silver share monetary demand but their relative prices sometimes diverge. A trailing gold/silver ETF-price ratio may identify the temporarily cheaper metal; holding only that metal during extreme deviations tests relative-value mean reversion.",
+  "id": "TOP_C4_GOLD_SILVER_RATIO",
+  "params": {
+    "lookback": 60,
+    "threshold": 2.0
+  },
+  "rules": [
+    "At each daily close compute GLD close / SLV close and its trailing 60-bar z-score, including the current close; population standard deviation.",
+    "If z >= 2 hold SLV; if z <= -2 hold GLD; otherwise hold cash. No hysteresis or minimum holding period.",
+    "Allocate 100 percent to the selected ETF, with no shorts or leverage; missing/zero dispersion means cash.",
+    "Decide at the close and fill at the next open. ETF-price ratio is a proxy, not an ounce-price ratio or a hedged pair trade."
+  ],
+  "split_kind": "equity",
+  "splits": {
+    "HO": [
+      "2024-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "timeframe": "1d",
+  "universe": [
+    "GLD",
+    "SLV"
+  ]
+}

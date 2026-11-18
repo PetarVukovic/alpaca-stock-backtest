@@ -1,0 +1,88 @@
+//@version=6
+// COMPILED OK on the TradingView server (2026-10-14); behaviour not yet compared trade by trade with the lab engine. Research only; no order-routing alerts.
+// One chart leg at a fixed one-third capital slot; NOT combined MU/WDC/STX equity.
+// Python uses constant portfolio weights; a chart strategy holds shares, so equity can differ.
+// Only next-open market fills: a low breach is NOT a stop filled at the opening low.
+// Execution reference: https://www.tradingview.com/pine-script-docs/concepts/strategies/
+strategy("TOP_C5_ORB_5M", overlay=true, pyramiding=0, default_qty_type=strategy.percent_of_equity, default_qty_value=33.3333333333, commission_type=strategy.commission.percent, commission_value=0.025, process_orders_on_close=false, calc_on_every_tick=false, margin_long=100)
+openingBars = input.int(6, "Opening bars", minval=1)
+maxEntries = input.int(1, "Maximum entries per day", minval=1)
+flatTime = input.string("15:55", "Flat time ET (HH:MM)")
+earlyFlatTime = input.string("12:55", "Conservative early flat time ET (HH:MM)")
+f_minute(string clock) =>
+    int(str.tonumber(str.substring(clock, 0, 2))) * 60 + int(str.tonumber(str.substring(clock, 3, 5)))
+if not timeframe.isminutes or timeframe.multiplier != 5
+    runtime.error("Use a 5-minute chart")
+if syminfo.ticker != "MU" and syminfo.ticker != "WDC" and syminfo.ticker != "STX"
+    runtime.error("Use MU, WDC or STX")
+string tz = "America/New_York"
+int dayNumber = year(time, tz) * 10000 + month(time, tz) * 100 + dayofmonth(time, tz)
+int minuteET = hour(time, tz) * 60 + minute(time, tz)
+int monthET = month(time, tz)
+int dateET = dayofmonth(time, tz)
+bool earlyDay = (monthET == 7 and (dateET == 2 or dateET == 3)) or (monthET == 12 and dateET == 24) or (monthET == 11 and dayofweek(time, tz) == dayofweek.friday and dateET >= 23 and dateET <= 29)
+// Zero weight one bar before the required liquidation open; includes early sessions.
+int deadline = (earlyDay ? f_minute(earlyFlatTime) : f_minute(flatTime)) - 5
+bool regular = minuteET >= 570 and minuteET < 960 and session.ismarket
+var int previousDay = na
+var int count = 0
+var int entries = 0
+var bool openingValid = true
+var bool held = false
+var float rangeHigh = na
+var float rangeLow = na
+var float pv = 0.0
+var float volumeSum = 0.0
+if na(previousDay) or dayNumber != previousDay
+    previousDay := dayNumber
+    count := 0
+    entries := 0
+    openingValid := true
+    held := false
+    rangeHigh := na
+    rangeLow := na
+    pv := 0.0
+    volumeSum := 0.0
+bool valid = not na(volume) and volume > 0 and not na(high) and not na(low) and not na(close) and low > 0 and high >= low
+if barstate.isconfirmed
+    if not regular
+        held := false
+    else
+        // Session VWAP is computed from typical bar prices, as in Python.
+        if valid
+            pv += hlc3 * volume
+            volumeSum += volume
+        // First six consecutive bars: 09:30, 09:35, ..., 09:55 ET.
+        if minuteET < 570 + 5 * openingBars
+            if minuteET != 570 + 5 * count or not valid
+                openingValid := false
+            count += 1
+            if valid
+                rangeHigh := na(rangeHigh) ? high : math.max(rangeHigh, high)
+                rangeLow := na(rangeLow) ? low : math.min(rangeLow, low)
+        else if minuteET >= deadline
+            held := false
+        else if held
+            // Low breach is observed at bar close, followed by next-open exit.
+            if not valid or low <= rangeLow
+                held := false
+        else if openingValid and count == openingBars and valid and entries < maxEntries
+            if close > rangeHigh and volumeSum > 0 and close > pv / volumeSum and low > rangeLow
+                held := true
+                entries += 1
+    if held and strategy.position_size == 0
+        strategy.entry("ORB", strategy.long)
+    if not held and strategy.position_size > 0
+        strategy.close("ORB")
+float sessionVWAP = volumeSum > 0 ? pv / volumeSum : na
+plot(regular ? rangeHigh : na, "Opening high", color=color.green, style=plot.style_linebr)
+plot(regular ? rangeLow : na, "Opening low", color=color.red, style=plot.style_linebr)
+plot(regular ? sessionVWAP : na, "Session typical-price VWAP", color=color.blue, style=plot.style_linebr)
+plotshape(held and not held[1], "Entry decision", shape.triangleup, location.belowbar, color=color.green, size=size.tiny)
+plotshape(not held and held[1], "Exit decision", shape.triangledown, location.abovebar, color=color.red, size=size.tiny)
+var table info = table.new(position.top_right, 1, 4)
+if barstate.islast
+    table.cell(info, 0, 0, "TOP_C5_ORB_5M")
+    table.cell(info, 0, 1, "5m | ET | next open | 0.025% per side")
+    table.cell(info, 0, 2, "Flat 15:55 / early 12:55 | one-third slot")
+    table.cell(info, 0, 3, "one leg | research only")

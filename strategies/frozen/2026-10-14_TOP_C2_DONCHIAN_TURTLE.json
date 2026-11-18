@@ -1,0 +1,62 @@
+{
+  "code_file": "lab/top10/strategies/top_c2_donchian_turtle.py",
+  "code_sha256": "f5a1895095970262393c9d4c73f2939300819c7012c54fac653b4575ba967d91",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "BTCUSDT": "79eb3d34f50137c79a2a811a3a5e3925af7faefc08b2a6696b62dfed547db8cc",
+    "ETHUSDT": "d1e50cadddc5af8c751e8e3de275314ec421716c0c7af52d9f4f7a80ec090e63",
+    "GLD": "7b03688892549854d422069e522a829e81efadafcb16be9cc15a20ee8717190b",
+    "MU": "fdedb4cb163bfc889b7d9e3658caad81407fe7624211ecbe009ee2b2150625c3",
+    "SLV": "9dc4736cc7e48631cde884e5eea96b190dd8737cd671716dee2bef8e20e95ea4",
+    "STX": "d1614d1b5a4108f76688857f38ee60ecfc0db093fb00d9eecaa5309aa260065b",
+    "WDC": "4d948b7455e383dcb36312907d9a5bbde2b94af221b3d6bfd226b48d40fd36af"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "A close beyond a long-established price range can reflect new information and persistent institutional demand. Investors anchored to the old range and slow hedgers supply the other side. A few sustained moves may pay for repeated failed breakouts; crowded trends and price gaps can defeat the mechanism.",
+  "id": "TOP_C2_DONCHIAN_TURTLE",
+  "params": {
+    "atr": 20,
+    "entry": 55,
+    "exit": 20,
+    "stop_atr": 2.0
+  },
+  "rules": [
+    "On the shared equity-session calendar, enter after a close strictly above the highest high of the preceding entry bars, excluding the current bar.",
+    "Fill at the next open. At that fill fix the protective threshold at entry open minus stop_atr times the signal-day Wilder ATR(atr).",
+    "ATR uses true range, an initial arithmetic mean of atr observations, then Wilder smoothing; the protective threshold never moves during a trade.",
+    "While held, exit after a close strictly below the lowest low of the preceding exit bars or at/below the fixed protective threshold. Execute at the following open, not at the threshold.",
+    "No pyramiding or same-close reentry after an exit. Give every asset one fixed equal slot of 1 / universe size; unused slots are cash.",
+    "The engine restores target slots at every next open and charges drift turnover. All lengths count shared equity-session bars, also for crypto.",
+    "Defaults 55/20 bars and two 20-bar ATR units are declared classic Turtle-style choices; no short side, leverage or original Turtle pyramiding."
+  ],
+  "split_kind": "equity",
+  "splits": {
+    "HO": [
+      "2024-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "timeframe": "1d",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX",
+    "GLD",
+    "SLV",
+    "BTCUSDT",
+    "ETHUSDT"
+  ]
+}

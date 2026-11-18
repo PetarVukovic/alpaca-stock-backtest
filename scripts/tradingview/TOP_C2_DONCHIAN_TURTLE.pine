@@ -1,0 +1,60 @@
+//@version=6
+// COMPILED OK on the TradingView server (2026-10-14); behaviour not yet compared trade by trade with the lab engine. Research only; order alerts disabled.
+// Equity/ETF leg signal replica; NOT a seven-asset portfolio backtest or exact sizing parity.
+// Use daily MU/WDC/STX/GLD/SLV. Crypto legs require the Python common equity calendar,
+// not a native 24/7 chart; this file deliberately rejects crypto charts.
+// Python sizes at next open using basket equity; this leg estimates size at the close.
+strategy("TOP_C2_DONCHIAN_TURTLE — jedna sastavnica", overlay=true, initial_capital=10000,
+     commission_type=strategy.commission.percent, commission_value=0.025,
+     process_orders_on_close=false, calc_on_every_tick=false, pyramiding=100, margin_long=100)
+entryLength = input.int(55, "Razdoblje vrha", minval=2)
+exitLength = input.int(20, "Razdoblje dna", minval=2)
+atrLength = input.int(20, "Razdoblje prosječnog raspona", minval=2)
+stopMultiple = input.float(2.0, "Zaštitni rasponi ispod ulaza", minval=0.1)
+if not timeframe.isdaily or timeframe.multiplier != 1 or syminfo.type == "crypto"
+    runtime.error("Koristi dnevni MU/WDC/STX/GLD/SLV grafikon; ovo nije kripto ni portfeljna replika.")
+if syminfo.ticker != "MU" and syminfo.ticker != "WDC" and syminfo.ticker != "STX" and syminfo.ticker != "GLD" and syminfo.ticker != "SLV"
+    runtime.error("Simbol nije u dioničkom/ETF dijelu zamrznute košarice.")
+
+// Current bar is excluded from the two price channels; ATR includes the signal bar.
+upper = ta.highest(high, entryLength)[1]
+lower = ta.lowest(low, exitLength)[1]
+atr = ta.atr(atrLength)
+ready = bar_index >= entryLength and not na(atr)
+var bool active = false
+var bool pending = false
+var float stop = na
+bool enterSignal = false
+bool exitSignal = false
+if barstate.isconfirmed
+    if active
+        // Fix the threshold once at the real next open. It is tested only at a close.
+        if pending
+            stop := open - stopMultiple * atr[1]
+            pending := false
+        if close < lower or close <= stop
+            active := false
+            exitSignal := true
+    else if ready and close > upper
+        active := true
+        pending := true
+        enterSignal := true
+    // One fixed slot out of seven; unused slots stay in cash. No same-close reentry.
+    target = active ? 1.0 / 7.0 : 0.0
+    desired = math.max(strategy.equity, 0) * target / close
+    difference = desired - strategy.position_size
+    if difference > 0
+        strategy.order("Dopuna", strategy.long, qty=difference, disable_alert=true)
+    else if difference < 0
+        strategy.order("Smanjenje", strategy.short, qty=math.min(-difference, strategy.position_size), disable_alert=true)
+
+plot(upper, "Prethodni vrh", color=color.green)
+plot(lower, "Prethodno dno", color=color.orange)
+plot(active and not pending ? stop : na, "Fiksni prag; izlaz tek nakon zatvaranja", color=color.red, style=plot.style_linebr)
+plotshape(enterSignal, title="Ulazni signal", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(exitSignal, title="Izlazni signal", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+var info = table.new(position.top_right, 1, 3)
+if barstate.islast
+    table.cell(info, 0, 0, "TOP_C2_DONCHIAN_TURTLE")
+    table.cell(info, 0, 1, "istraživanje · jedna sastavnica · 1/7 kapitala")
+    table.cell(info, 0, 2, "Odluka na zatvaranju → iduće otvaranje")

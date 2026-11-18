@@ -1,0 +1,17 @@
+{
+  "id": "C33_C13C_METALS",
+  "symbols": [
+    "OANDA:XAUUSD",
+    "OANDA:XAGUSD"
+  ],
+  "start": "2024-10-11",
+  "end_exclusive": "2026-10-10",
+  "mode": "BASE",
+  "capital_usd": 10000,
+  "quantity": 1,
+  "commission_percent_side": 0.025,
+  "slippage_ticks": 1,
+  "margin_percent": 100,
+  "source": "scripts/tradingview/C29_C30_research_replica.pine",
+  "limitations": "spot synthetic diagnostic, no financing/spread history, fixed one unit, not account allocation recommendation"
+}

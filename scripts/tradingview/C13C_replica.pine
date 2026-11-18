@@ -1,0 +1,190 @@
+//@version=6
+// C13C replica (frozen rule, do not tune): same entry as C13A, exit = trailing stop 10 % below the peak.
+// Entry: close > SMA200 and 5-day change <= -5 %, filled at next open. One position at a time.
+// Exit: stop 10 % below the highest high since entry (peak starts at the entry price; a new high counts from the next bar).
+// No time exit and no fixed -8 % stop. Costs: 5 bps round trip (0.025 % per side) + 1 tick slippage.
+// Visual approximation ONLY: entry-bar stop absent, single ticker, no shared portfolio caps/priority.
+// Do not compare Strategy Tester returns with the application portfolio; Python replay is canonical.
+// calc_on_order_fills stays disabled: historical high/low on fill recalculation risks lookahead.
+// Everything below the "visuals" marker only draws; it never changes a trade.
+// On-chart texts are Croatian on purpose (the user is learning from them); code comments stay English.
+strategy("C13C · prikaz jedne dionice", overlay=true, initial_capital=100000,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     calc_on_order_fills=false, calc_on_every_tick=false, process_orders_on_close=false,
+     commission_type=strategy.commission.percent, commission_value=0.025,
+     slippage=1, pyramiding=0, max_boxes_count=500, max_lines_count=500, max_labels_count=500)
+
+startTime   = input.time(timestamp("2024-01-01T00:00:00"), "Trguj od (samo prozor, pravilo se ne mijenja)", tooltip="Datum od kojeg skripta smije ulaziti u trgovine. Mijenja samo prozor testa, ne pravilo.")
+endTime     = input.time(timestamp("2030-01-01T00:00:00"), "Bez novih ulaza nakon (samo prozor)", tooltip="Nakon ovog datuma nema novih ulaza. Tako gledaš jedno razdoblje, npr. 2022.")
+showRegime  = input.bool(true, "Prikaži pozadinu trenda (zeleno iznad SMA 200, crveno ispod)")
+showDips    = input.bool(true, "Prikaži padove (zeleni krug = signal, sivi križ = preskočeno)")
+showTrades  = input.bool(true, "Prikaži okvir trgovine, klizeći stop i rezultat")
+showSignals = input.bool(true, "Prikaži poruke: SIGNAL, ULAZ, IZLAZ")
+showLegend  = input.bool(false, "Prikaži legendu oznaka (gore desno)")
+showStatus  = input.bool(false, "Prikaži stanje na zadnjoj svijeći (dolje desno)")
+showGlossary = input.bool(false, "Prikaži pojmovnik (dolje lijevo)", tooltip="Kratko objašnjenje pojmova koje vidiš na grafu.")
+showDayNo   = input.bool(false, "Piši broj dana u poziciji ispod svijeće")
+
+sma200  = ta.sma(close, 200)
+chg5    = close / close[5] - 1
+trendUp = close > sma200
+dip     = chg5 <= -0.05
+inWin   = time >= startTime and time <= endTime
+isDaily = timeframe.isdaily and timeframe.multiplier == 1
+supportedSymbol = syminfo.ticker == "MU" or syminfo.ticker == "WDC" or syminfo.ticker == "STX"
+signal  = isDaily and supportedSymbol and barstate.isconfirmed and inWin and strategy.position_size == 0 and trendUp and dip
+
+var float peak = na
+if strategy.position_size > 0
+    peak := strategy.position_size[1] == 0 ? math.max(strategy.position_avg_price, high) : math.max(peak, high)
+    strategy.exit("trail", "C13C", stop = math.round_to_mintick(peak * 0.90))
+else
+    peak := na
+
+if signal
+    strategy.entry("C13C", strategy.long)
+
+// ---- informational alerts only: the local app checks the complete portfolio ----
+nyDate = str.format_time(time, "dd.MM.yyyy", "America/New_York")
+newStop = strategy.position_size > 0 ? math.round_to_mintick(peak * 0.90) : na
+if signal
+    alert("C13C ISTRAŽIVAČKI SIGNAL: " + syminfo.ticker + " (završeni dan " + nyDate + ")" + "\n" +
+         "Zatvaranje: " + str.tostring(close, "#.##") + " USD; promjena u 5 dana: " + str.tostring(chg5 * 100, "#.##") + " %." + "\n" +
+         "Provjeri lokalnu aplikaciju: ona odlučuje po prioritetu MU, WDC, STX, jednoj otvorenoj poziciji i granicama rizika." + "\n" +
+         "Prikaz simulira 1 dionicu i početnih 100.000 USD. Ne predlaže ulaganje cijelog računa ni pretvorbu 600 EUR." + "\n" +
+         "Ograničenja prikaza: nema stopa na dan ulaza, zajedničkog portfelja ni provjere limita 1.200 USD pri izvršenju. Nije nalog za kupnju. C13C je istraživanje, Critic FAIL.", alert.freq_once_per_bar_close)
+
+if isDaily and barstate.isconfirmed and strategy.position_size > 0 and (strategy.position_size[1] == 0 or newStop > nz(newStop[1]))
+    alert("C13C SIMULIRANI STOP: " + syminfo.ticker + " (" + nyDate + "): " + str.tostring(newStop, "#.##") + " USD." + "\n" +
+         "Ovo je stop prikaza na grafu. Stvarni paper stop i izvršenja provjeri u aplikaciji; razine se mogu razlikovati.", alert.freq_once_per_bar_close)
+
+if isDaily and barstate.isconfirmed and strategy.position_size[1] > 0 and strategy.position_size == 0
+    alert("C13C SIMULIRANI IZLAZ: " + syminfo.ticker + " (" + nyDate + "). Provjeri dnevnik aplikacije. Ova poruka ne potvrđuje brokersko izvršenje i nije nalog za prodaju.", alert.freq_once_per_bar_close)
+
+// Permanent warning: this chart cannot enforce cross-symbol portfolio behavior.
+if barstate.islast
+    var table limitation = table.new(position.top_center, 1, 1)
+    table.cell(limitation, 0, 0, "PRIKAZ JEDNE DIONICE · 1 dionica / 100.000 USD\nNema stopa na dan ulaza ni zajedničkog računa.\nMjerodavan je Python portfeljni test; Critic FAIL.", bgcolor=color.new(color.orange, 15), text_color=color.black, text_size=size.small)
+
+// ---- visuals ----
+plot(sma200, "SMA 200 (prosjek 200 dana)", color=color.orange, linewidth=2)
+plot(strategy.position_size > 0 ? peak * 0.90 : na, "Klizeći stop (10 % ispod vrha)", color=color.red, style=plot.style_linebr, linewidth=2)
+bgcolor(showRegime and not na(sma200) ? (trendUp ? color.new(color.green, 92) : color.new(color.red, 92)) : na)
+plotshape(showDips and inWin and dip and trendUp, "Dan signala (pad uz trend gore)", shape.circle, location.belowbar, color.green, size=size.small)
+plotshape(showDips and inWin and dip and not trendUp, "Preskočen pad (trend dolje)", shape.xcross, location.belowbar, color.gray, size=size.tiny)
+
+// values shown in the status line and Data Window for the bar under the cursor
+plot(chg5 * 100, "Promjena u 5 dana (%)", display=display.status_line + display.data_window)
+plot(trendUp ? 1 : 0, "Trend gore (1 = da, 0 = ne)", display=display.status_line + display.data_window)
+plot(strategy.position_size > 0 ? bar_index - strategy.opentrades.entry_bar_index(0) + 1 : na, "Dan u poziciji", display=display.status_line + display.data_window)
+plot(strategy.position_size > 0 ? peak : na, "Najviši vrh od ulaza", display=display.status_line + display.data_window)
+
+if showSignals and signal
+    label.new(bar_index, low, "SIGNAL\nsutra kupnja", style=label.style_label_up, color=color.green, textcolor=color.white, size=size.small,
+         tooltip="SIGNAL: cijena je iznad SMA 200 (trend gore) i pala je najmanje 5 % u zadnjih 5 dana. Sutra na otvaranju pravilo kupuje.")
+
+if showSignals and strategy.position_size > 0 and strategy.position_size[1] == 0
+    label.new(bar_index, low, "ULAZ\n" + str.tostring(strategy.position_avg_price, "0.00"), style=label.style_label_up, color=color.blue, textcolor=color.white, size=size.small,
+         tooltip="ULAZ: kupnja na otvaranju dana nakon signala. Nema fiksnog roka ni fiksnog stopa: izlaz je klizeći stop 10 % ispod najvišeg vrha od ulaza.")
+
+if showDayNo and strategy.position_size > 0
+    label.new(bar_index, low, str.tostring(bar_index - strategy.opentrades.entry_bar_index(0) + 1), style=label.style_label_up, color=color.new(color.gray, 40), textcolor=color.white, size=size.tiny,
+         tooltip="Dan u poziciji (C13C nema fiksni rok).")
+
+if showTrades and strategy.closedtrades > strategy.closedtrades[1]
+    idx    = strategy.closedtrades - 1
+    eBar   = strategy.closedtrades.entry_bar_index(idx)
+    ePrice = strategy.closedtrades.entry_price(idx)
+    xPrice = strategy.closedtrades.exit_price(idx)
+    ret    = strategy.closedtrades.profit_percent(idx)
+    days   = bar_index - eBar
+    hi = high
+    lo = low
+    for i = 0 to days
+        hi := math.max(hi, high[i])
+        lo := math.min(lo, low[i])
+    col = ret > 0 ? color.green : color.red
+    box.new(eBar, hi, bar_index, lo, border_color=col, border_style=line.style_dashed, bgcolor=color.new(col, 88),
+         text=(ret > 0 ? "DOBITNA" : "GUBITNA") + " trgovina", text_color=col, text_size=size.tiny, text_halign=text.align_left, text_valign=text.align_top)
+    line.new(eBar, ePrice, eBar + 3, ePrice, color=color.black, width=2)
+    label.new(bar_index, xPrice, "klizeći stop\n" + str.tostring(xPrice, "0.00"), style=label.style_label_left, color=color.new(color.red, 20), textcolor=color.white, size=size.tiny,
+         tooltip="Crvena linija: klizeći stop, 10 % ispod najvišeg vrha od ulaza. Ide samo prema gore. Kad cijena padne do nje, pravilo izlazi.")
+    label.new(bar_index, hi, "IZLAZ: klizeći stop, " + str.tostring(days) + " dana\n" + str.tostring(ret, "0.0") + " %", style=label.style_label_down, color=col, textcolor=color.white, size=size.small,
+         tooltip="IZLAZ: cijena je pala 10 % ispod najvišeg vrha od ulaza. Ulaz " + str.tostring(ePrice, "0.00") + ", izlaz " + str.tostring(xPrice, "0.00") + ", trajanje " + str.tostring(days) + " dana. Rezultat nakon troškova: " + str.tostring(ret, "0.0") + " %.")
+
+if showLegend and barstate.islast
+    var table lg = table.new(position.top_right, 2, 15, border_width=1, frame_color=color.gray, frame_width=1)
+    table.cell(lg, 0, 0, "Oznaka", text_color=color.white, bgcolor=color.new(color.gray, 20), text_size=size.small)
+    table.cell(lg, 1, 0, "Što znači", text_color=color.white, bgcolor=color.new(color.gray, 20), text_size=size.small, text_halign=text.align_left)
+    table.cell(lg, 0, 1, "zelena pozadina", bgcolor=color.new(color.green, 80), text_size=size.tiny)
+    table.cell(lg, 1, 1, "Cijena iznad SMA 200: trend gore, smijemo kupovati", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 2, "crvena pozadina", bgcolor=color.new(color.red, 80), text_size=size.tiny)
+    table.cell(lg, 1, 2, "Cijena ispod SMA 200: trend dolje, ne kupujemo", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 3, "narančasta linija", text_color=color.orange, text_size=size.tiny)
+    table.cell(lg, 1, 3, "SMA 200: prosjek zadnjih 200 zatvaranja", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 4, "zeleni krug", text_color=color.green, text_size=size.tiny)
+    table.cell(lg, 1, 4, "Signal: pad ≥ 5 % u 5 dana uz trend gore", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 5, "sivi križ", text_color=color.gray, text_size=size.tiny)
+    table.cell(lg, 1, 5, "Pad ≥ 5 %, ali trend dolje: preskačemo", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 6, "isprekidani okvir", text_color=color.green, text_size=size.tiny)
+    table.cell(lg, 1, 6, "Jedna trgovina: zelen = dobitna, crven = gubitna", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 7, "crvena stepenasta linija", text_color=color.red, text_size=size.tiny)
+    table.cell(lg, 1, 7, "Klizeći stop: 10 % ispod vrha, ide samo gore", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 8, "crna crta", text_color=color.black, text_size=size.tiny)
+    table.cell(lg, 1, 8, "Ulazna cijena", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 9, "plava strelica ↑ + tekst (npr. C13A +24)", text_color=color.blue, text_size=size.tiny)
+    table.cell(lg, 1, 9, "TradingView: kupnja izvršena. Broj (+24) je broj kupljenih dionica", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 10, "ljubičasta strelica ↓ + tekst (npr. -24 stop)", text_color=color.purple, text_size=size.tiny)
+    table.cell(lg, 1, 10, "TradingView: prodaja izvršena. Broj je broj prodanih dionica, tekst je razlog izlaza", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 11, "brojevi uz ime skripte (gore lijevo)", text_size=size.tiny)
+    table.cell(lg, 1, 11, "Zadnje vrijednosti linija: SMA 200, klizeći stop, promjena u 5 dana, trend, dan u poziciji", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 12, "točkasta crvena vodoravna crta", text_color=color.red, text_size=size.tiny)
+    table.cell(lg, 1, 12, "TradingView: linija zadnje cijene (nije dio pravila)", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 13, "isprekidana siva crta", text_color=color.gray, text_size=size.tiny)
+    table.cell(lg, 1, 13, "TradingView: nišan miša (crosshair)", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(lg, 0, 14, "SAVJET", text_color=color.orange, text_size=size.tiny)
+    table.cell(lg, 1, 14, "Na grafu drži samo jednu strategiju (A ili C), inače se oznake preklapaju", text_size=size.tiny, text_halign=text.align_left)
+
+if showStatus and barstate.islast
+    var table stt = table.new(position.bottom_right, 2, 6, border_width=1, frame_color=color.gray, frame_width=1)
+    table.cell(stt, 0, 0, "Stanje na zadnjoj svijeći", text_color=color.white, bgcolor=color.new(color.gray, 20), text_size=size.small)
+    table.cell(stt, 1, 0, "", bgcolor=color.new(color.gray, 20))
+    table.cell(stt, 0, 1, "Trend", text_size=size.small)
+    table.cell(stt, 1, 1, trendUp ? "gore (iznad SMA 200)" : "dolje (ispod SMA 200)", text_color=trendUp ? color.green : color.red, text_size=size.small)
+    table.cell(stt, 0, 2, "Promjena u 5 dana", text_size=size.small)
+    table.cell(stt, 1, 2, str.tostring(chg5 * 100, "0.0") + " %" + (dip ? " (pad ≥ 5 %)" : ""), text_size=size.small)
+    table.cell(stt, 0, 3, "Pozicija", text_size=size.small)
+    table.cell(stt, 1, 3, strategy.position_size > 0 ? "otvorena, dan " + str.tostring(bar_index - strategy.opentrades.entry_bar_index(0) + 1) : "nema", text_size=size.small)
+    table.cell(stt, 0, 4, "Što radimo", text_size=size.small)
+    table.cell(stt, 1, 4, strategy.position_size > 0 ? "držimo, klizeći stop " + str.tostring(peak * 0.90, "0.00") : (trendUp and dip ? "SIGNAL: sutra kupnja" : "čekamo signal"), text_size=size.small)
+    table.cell(stt, 0, 5, "Okvir grafa", text_size=size.small)
+    table.cell(stt, 1, 5, isDaily ? "dnevni (1D): ispravno" : "UPOZORENJE: pravilo vrijedi samo na dnevnom grafu (D)", text_color=isDaily ? color.green : color.red, text_size=size.small)
+
+if showGlossary and barstate.islast
+    var table gl = table.new(position.bottom_left, 2, 13, border_width=1, frame_color=color.gray, frame_width=1)
+    table.cell(gl, 0, 0, "Pojam", text_color=color.white, bgcolor=color.new(color.gray, 20), text_size=size.small)
+    table.cell(gl, 1, 0, "Laički", text_color=color.white, bgcolor=color.new(color.gray, 20), text_size=size.small, text_halign=text.align_left)
+    table.cell(gl, 0, 1, "SMA 200", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 1, "Prosjek zadnjih 200 zatvaranja. Pokazuje dugoročni trend.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 2, "Trend gore / dolje", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 2, "Zatvaranje iznad / ispod SMA 200.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 3, "Pad u trendu (pullback)", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 3, "Kratak pad dok je veći trend još gore.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 4, "Signal", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 4, "Trend gore + pad ≥ 5 % u 5 dana. Sutra se kupuje.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 5, "Stop", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 5, "Unaprijed određena cijena izlaza koja ograničava gubitak.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 6, "Klizeći stop (trailing)", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 6, "Stop koji prati najviši vrh i ide samo prema gore.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 7, "Gap", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 7, "Razlika između jučerašnjeg zatvaranja i današnjeg otvaranja.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 8, "Drawdown (najveći pad)", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 8, "Najveći pad računa od vrha do dna.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 9, "Profit factor", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 9, "Ukupni dobici podijeljeni ukupnim gubicima. Iznad 1 = zarada.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 10, "Backtest", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 10, "Simulacija pravila na prošlim podacima (s troškovima).", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 11, "Swing", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 11, "Držanje pozicije nekoliko dana do tjedana.", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 0, 12, "Dnevni graf (D)", text_size=size.tiny, text_halign=text.align_left)
+    table.cell(gl, 1, 12, "Jedna svijeća = jedan dan. Pravilo vrijedi samo na njemu.", text_size=size.tiny, text_halign=text.align_left)

@@ -1,0 +1,52 @@
+{
+  "code_file": "lab/top10/strategies/top_n4_btc_vol_compression.py",
+  "code_sha256": "b640e51c131358c922e5efcd36f1babf36f2f811240918c52ce1c64f4b85330e",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "BTCUSDT": "79eb3d34f50137c79a2a811a3a5e3925af7faefc08b2a6696b62dfed547db8cc",
+    "ETHUSDT": "d1e50cadddc5af8c751e8e3de275314ec421716c0c7af52d9f4f7a80ec090e63"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "Volatility clusters: quiet stretches tend to be followed by large moves. When realized volatility has been unusually low relative to the last year and price then closes above its recent range, the compression often resolves upward into a trend. Holding the breakout with a volatility-scaled trailing stop lets winners run while a trend average exit ends trades that lose their trend.",
+  "id": "TOP_N4_BTC_VOL_COMPRESSION",
+  "params": {
+    "atr_mult": 3.0,
+    "atr_n": 14,
+    "breakout": 20,
+    "pct_max": 0.3,
+    "pct_window": 250,
+    "trend": 100,
+    "vol_window": 20
+  },
+  "rules": [
+    "Realized volatility = rolling std (population, ddof=0) of daily log returns over vol_window bars. Its percentile is the share of the last pct_window values (including itself) that are <= the current value. The percentile is read as of the PREVIOUS bar, so the breakout bar itself cannot create the compression signal.",
+    "Entry (flat asset): close > highest high of the previous breakout bars, AND previous-bar volatility percentile <= pct_max, AND close > SMA(trend).",
+    "Exit (held asset): close <= highest close since entry minus atr_mult * ATR(atr_n) (close-based trailing stop, only moves up), OR close < SMA(trend).",
+    "Sizing: one equal slot per asset (1/2 of capital each for BTCUSDT and ETHUSDT); an idle slot stays in cash. No shorts, no leverage. Decide at the close, fill at the next open."
+  ],
+  "split_kind": "equity",
+  "splits": {
+    "HO": [
+      "2024-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "timeframe": "1d",
+  "universe": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ]
+}

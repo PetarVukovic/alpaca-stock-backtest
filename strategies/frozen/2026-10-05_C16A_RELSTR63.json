@@ -1,0 +1,28 @@
+{
+  "id": "C16A_RELSTR63",
+  "created": "2026-10-05",
+  "family": "relative_strength",
+  "hypothesis": "Drži najjaču od tri dionice po rastu u zadnja 3 mjeseca.",
+  "mechanism": "Dionice koje su vodeće imaju zamah jer ih fondovi dodatno kupuju i vijesti ih prate.",
+  "persistence": "Zamah (momentum) je dokumentiran efekt, no u malom skupu od tri dionice je slab dokaz.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "relative_strength",
+    "lookback": 63
+  },
+  "exit": {
+    "type": "rule"
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

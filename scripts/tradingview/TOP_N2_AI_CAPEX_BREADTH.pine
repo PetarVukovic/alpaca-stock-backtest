@@ -1,0 +1,59 @@
+// TOP_N2_AI_CAPEX_BREADTH - Pine Script v6 replica of the frozen lab rule. Research only, no orders, not a Critic PASS.
+// COMPILED OK on the TradingView server (2026-10-14); behaviour not yet compared trade by trade with the lab engine.
+// Apply to a DAILY chart of ONE memory name (MU, WDC, STX, RMBS or SIMO). The lab holds 1/5 of capital per qualifying name;
+// here each chart trades its own name with 20% of equity (default_qty_value) so the per-name slot matches.
+// Lab cost: 2.5 bps per side (equity) -> commission 0.025 percent per order.
+//@version=6
+strategy("TOP_N2_AI_CAPEX_BREADTH", overlay=true, initial_capital=100000,
+     default_qty_type=strategy.percent_of_equity, default_qty_value=20,
+     commission_type=strategy.commission.percent, commission_value=0.025,
+     process_orders_on_close=false, calc_on_every_tick=false)
+
+// Inputs = PARAMS defaults of the frozen module.
+trendLen = input.int(100, "Trend (SMA length)", minval=2)   // PARAMS["trend"]
+minOn    = input.int(3, "Min hyperscalers above trend", minval=1, maxval=4) // PARAMS["min_on"]
+
+// Rule 1: hyperscaler is "on" when its daily close is above its own SMA(trend). Signal-only, never traded.
+// lookahead_off + daily series: only the completed bar's value is used (no future data).
+onFlag(sym) =>
+    c = request.security(sym, "D", close, lookahead = barmerge.lookahead_off)
+    s = request.security(sym, "D", ta.sma(close, trendLen), lookahead = barmerge.lookahead_off)
+    c > s ? 1 : 0
+
+msft  = onFlag("MSFT")
+googl = onFlag("GOOGL")
+amzn  = onFlag("AMZN")
+meta  = onFlag("META")
+breadth = msft + googl + amzn + meta
+
+// Rule 2: breadth gate open when at least minOn of 4 are on.
+gateOpen = breadth >= minOn
+
+// Rule 3: the traded name must itself be above its own SMA(trend).
+smaSelf  = ta.sma(close, trendLen)
+selfOn   = close > smaSelf
+wantLong = gateOpen and selfOn
+
+// Rule 5: decide at the close of bar t, fill at the next bar open (strategy orders fill at next open by default).
+if wantLong and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+if not wantLong and strategy.position_size > 0
+    strategy.close("Long", comment = "Exit")
+
+// Plotted signals.
+plot(smaSelf, "Own SMA", color = color.orange)
+bgcolor(gateOpen ? color.new(color.green, 92) : na, title = "Breadth gate open")
+plotshape(wantLong and not wantLong[1], "Long signal", shape.triangleup, location.belowbar, color.green, size = size.small)
+plotshape(not wantLong and wantLong[1], "Exit signal", shape.triangledown, location.abovebar, color.red, size = size.small)
+
+// Info table with the strategy ID.
+var table info = table.new(position.top_right, 2, 4, border_width = 1)
+if barstate.islast
+    table.cell(info, 0, 0, "ID", text_color = color.white, bgcolor = color.gray)
+    table.cell(info, 1, 0, "TOP_N2_AI_CAPEX_BREADTH", text_color = color.white, bgcolor = color.gray)
+    table.cell(info, 0, 1, "Hyperscalers on")
+    table.cell(info, 1, 1, str.tostring(breadth) + " / 4")
+    table.cell(info, 0, 2, "Gate open")
+    table.cell(info, 1, 2, gateOpen ? "yes" : "no")
+    table.cell(info, 0, 3, "Own trend")
+    table.cell(info, 1, 3, selfOn ? "above" : "below")

@@ -1,0 +1,29 @@
+{
+  "id": "H4B_LAST_HOUR",
+  "created": "2026-10-05",
+  "family": "day_trade",
+  "hypothesis": "Zadnji sat (14-15 ET) nosi nastavak dnevnog smjera.",
+  "mechanism": "Institucije izvršavaju velike naloge pred zatvaranje.",
+  "persistence": "Slabo: troškovi 5 bps + 2 ticka teško se vraćaju.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "hourly",
+  "entry": {
+    "type": "day_trade",
+    "mode": "last_hour"
+  },
+  "exit": {
+    "type": "risk",
+    "stop_pct": 0.02
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

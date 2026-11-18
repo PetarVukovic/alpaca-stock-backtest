@@ -1,0 +1,33 @@
+{
+  "id": "C18A_VOLSHOCK_DIP",
+  "created": "2026-10-05",
+  "family": "volatility",
+  "hypothesis": "Nagli šok kolebanja uz pad unutar trenda daje kratki odskok.",
+  "mechanism": "Panična prodaja unutar trenda pretjeruje, pa kupci unutar trenda odmah vraćaju dio.",
+  "persistence": "Panika je kratkotrajna, a trend ostaje.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "volatility_shock",
+    "vol_window": 20,
+    "lookback": 63,
+    "shock_multiplier": 2,
+    "trend_window": 200
+  },
+  "exit": {
+    "type": "risk",
+    "stop_pct": 0.1,
+    "hold_bars": 10
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

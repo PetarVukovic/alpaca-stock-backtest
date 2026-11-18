@@ -1,0 +1,58 @@
+{
+  "code_file": "lab/top10/strategies/top_c3_ibs_revert.py",
+  "code_sha256": "4ff674563caeabd92fa4fb64697c4136bdfbf09e0dc40759427d320190407005",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "GLD": "7b03688892549854d422069e522a829e81efadafcb16be9cc15a20ee8717190b",
+    "QQQ": "d49fa5730fe93458d97d9c5f5d54cc1b7f8d517310e532c1deee2c1573b9d723",
+    "SLV": "9dc4736cc7e48631cde884e5eea96b190dd8737cd671716dee2bef8e20e95ea4",
+    "SMH": "b04b8271e39d8fa6bdb6e8f2e745fe278debec26663046b8d0978747292611d1",
+    "SPY": "b815884b9e55e90f9a163da772bbe89e868e3435bc4529bde5a5e7da0f07fd00"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "Short-lived liquidity demand and end-of-day selling can temporarily depress diversified instruments within an established uptrend. Buying a weak close may earn compensation for supplying liquidity to urgent sellers, provided selling is temporary rather than new fundamental information. The long-term trend filter and short holding limit constrain exposure.",
+  "id": "TOP_C3_IBS_REVERT",
+  "params": {
+    "entry_ibs": 0.2,
+    "exit_ibs": 0.7,
+    "hold": 5,
+    "trend": 200
+  },
+  "rules": [
+    "Use daily bars on the common equity-session calendar for all five instruments.",
+    "IBS = (close-low)/(high-low). A zero-range bar generates neither an entry nor an IBS exit; the holding-time exit still applies.",
+    "When flat, enter after close is strictly above its trend-bar simple moving average and IBS is at or below entry_ibs. The average includes today's close and requires the full window.",
+    "Fill at next open; assign one fixed equal slot of 1 / universe size. Inactive slots stay in cash; no shorts or leverage.",
+    "While held, exit after IBS is at or above exit_ibs or hold sessions have completed, counting the fill day as session one; execute at next open.",
+    "The trend filter is for entry only. No same-close reentry after an exit. The engine restores target slots daily and charges drift turnover.",
+    "Defaults trend=200, entry_ibs=0.20, exit_ibs=0.70 and hold=5 are predeclared simple daily reversion rules, not chosen from results."
+  ],
+  "split_kind": "equity",
+  "splits": {
+    "HO": [
+      "2024-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "timeframe": "1d",
+  "universe": [
+    "SPY",
+    "QQQ",
+    "SMH",
+    "GLD",
+    "SLV"
+  ]
+}

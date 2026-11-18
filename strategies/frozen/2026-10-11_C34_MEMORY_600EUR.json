@@ -1,0 +1,62 @@
+{
+  "id": "C34_MEMORY_600EUR",
+  "symbols": [
+    "MU",
+    "WDC",
+    "STX",
+    "SIMO",
+    "RMBS",
+    "MRAM",
+    "SNDK"
+  ],
+  "periods": {
+    "RECENT": [
+      "2024-10-11",
+      "2026-10-08"
+    ],
+    "IS": [
+      "2016-01-04",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-04",
+      "2023-12-29"
+    ]
+  },
+  "capital_eur": 600,
+  "allocation": 0.95,
+  "fx_conversion_entry": 0.001,
+  "sizes": [
+    "whole",
+    "fractional"
+  ],
+  "costs": "max(1 USD, notional*0.00025) per side plus .01 USD per share slippage; SNDK/MRAM multiply both by 3; stress2 doubles again",
+  "recent_cases": [
+    "BASE",
+    "COST2",
+    "STOP100BPS"
+  ],
+  "portfolio_priority": [
+    "MU",
+    "WDC",
+    "STX",
+    "SIMO",
+    "RMBS",
+    "MRAM",
+    "SNDK"
+  ],
+  "rules": "close>SMA200 and close/close[5]-1<=-.05; next open; ratchet 10pct stop; 95pct available cash, no original500USD cap; no leverage",
+  "fractional": "hypothetical eligibility, 6 decimals, no guarantee broker supports all tickers/stops",
+  "hashes": {
+    "lab/research/c34_accounts.py": "f62a1aba68834b4b58ddec84274ae669bb1d9f68f56410acad529ec81dd202ac",
+    "strategies/frozen/2026-10-05_C13C_TREND_DIP5_TRAIL.json": "560cee7d64d929d395a3529d7994a1b43d9c89ff7c76cf1b7ca77f65f9afb428",
+    "reports/research/C13C_20261009/ecb-history.xml": "7ddf0f32a828b2b4778e4200389a2cd6cdb63e685b9477be256a732e9e771e9d",
+    "data/ohlcv/MU_1d.csv": "fdedb4cb163bfc889b7d9e3658caad81407fe7624211ecbe009ee2b2150625c3",
+    "data/ohlcv/WDC_1d.csv": "4d948b7455e383dcb36312907d9a5bbde2b94af221b3d6bfd226b48d40fd36af",
+    "data/ohlcv/STX_1d.csv": "d1614d1b5a4108f76688857f38ee60ecfc0db093fb00d9eecaa5309aa260065b",
+    "data/ohlcv/SIMO_1d.csv": "1adc408a58368d6d0247a4de489f5e243d75f9a69dd3a0112daf27bbb7293936",
+    "data/ohlcv/RMBS_1d.csv": "6f7a54facf35bc3e0c8b41e1accb167dd8bd6c7fa5daed9397cbf91a0b0610cc",
+    "data/ohlcv/MRAM_1d.csv": "85ec5c285eaf4ca3d797b09b90efa0dd5c8f333ac645f3319ce55813b8ac0fb2",
+    "data/ohlcv/SNDK_1d.csv": "068ce59d45e7481e525f6277587a0af530303ea6a50877b6601cc925a9182719"
+  }
+}

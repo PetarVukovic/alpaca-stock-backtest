@@ -1,0 +1,62 @@
+{
+  "code_file": "lab/crypto_dt/strategies/cdt_h1_trend_4h.py",
+  "code_sha256": "d512b4f704b814a5be3d767f0923d2fa1cdc22e329853c592cb510b3617538da",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "BTCUSDT": "022b81a0e7a9a8695f76fbb25fa664f7f82456981a5132a6b3c1fb9648173048",
+    "ETHUSDT": "00ca763608fd14e435fa4ad68381ed66d1e63433749474a83290fb7ba3792265",
+    "SOLUSDT": "f6dfc1d2d571286e90e70d43ba093e7974dfef3ea0120b1bf184a74455f700ed"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "Crypto trends persist for days, and slow trend rules are the only family with published net-of-cost evidence (Zarattini, Pagani, Barbon 2025). A three-speed Donchian ensemble on 4h bars keeps turnover low enough to survive 10 bps per side, and volatility sizing caps the exposure of the noisier alts. The open question is whether the long-only half of the effect survives after 2022.",
+  "id": "CDT_H1_TREND_4H",
+  "params": {
+    "exit_ratio": 0.5,
+    "n_fast": 20,
+    "n_mid": 40,
+    "n_slow": 80,
+    "sigma_target": 0.5,
+    "vol_window": 90
+  },
+  "preregistration": "docs/research/CRYPTO_DT_PREREGISTRATION.md",
+  "preregistration_sha256": "7afc2e0bf92936d55ce9a4a7351af4f857b304c1c5cf0c42c817720d5dd1a0c1",
+  "rules": [
+    "4h bars are built from 1h bars (open at 00/04/08/12/16/20 UTC); buckets with a missing hour are dropped.",
+    "Per asset and per speed N in (20, 40, 80) bars: enter long on a close above the highest high of the prior N bars; leave on a close below the lowest low of the prior N/2 bars.",
+    "Asset score = mean of the three speed states (0, 1/3, 2/3, 1).",
+    "Weight = score * clip(0.5 / annualised realised vol of the last 90 bars, 0, 1) / 3 per asset; unused capital stays in cash.",
+    "Decide at the bar close, fill at the next bar open, long-only, no leverage."
+  ],
+  "split_kind": "crypto",
+  "splits": {
+    "HO": [
+      "2025-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2021-01-01",
+      "2022-12-31"
+    ],
+    "WF": [
+      "2023-01-01",
+      "2024-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "structure": null,
+  "support_sha256": {
+    "data.py": "1b0c159ff0c88954cb600ab84922e97a22a20225e25a5322fc1b566f12e6955c",
+    "features.py": "66537e5ccc895ea793f693b60e6f9c5fd0c84f39a15d1c1cb3d86092b74e6cbd",
+    "run.py": "f55918f9b49c0939c6487dd35222657a866ed0d8de925070b3dff28d30bb50ff"
+  },
+  "timeframe": "4h",
+  "universe": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT"
+  ]
+}

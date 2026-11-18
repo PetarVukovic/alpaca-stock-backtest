@@ -1,0 +1,127 @@
+//@version=6
+// MASTER_W5_BREAKOUT_RETEST v2 visual  (lab id: SWING_W5_SR_BREAKOUT_RETEST, same frozen rule as MASTER_W5_BREAKOUT_RETEST.pine)
+// Research only, not advice, no orders are ever sent.
+// RULE (frozen, unchanged from v1, do not tune):
+//   1. "Resistance" = the latest CONFIRMED swing high: a high strictly above the 5 bars on each side (known 5 bars later).
+//   2. ARM: a close breaks above the resistance while the previous close was at or below it.
+//   3. The setup is cancelled when a close falls under that level, or 40 bars pass without a retest.
+//   4. ENTRY signal: the low comes within 1.5 percent above the level and the close is back above it. Buy fills at the NEXT open.
+//   5. Stop 3 percent under the level. Exit signal: close < SMA50, sale at next open.
+// COSTS: 0.025 percent per side. ALERTS: choose 'Any alert() function call'. Never pick order-fill alerts or webhooks.
+// v2 ADDS VISUALS ONLY: colored zones and background, hover labels with Croatian explanations, explained info table.
+//   The only logic-side additions are boolean flags (armEvt, cancelEvt) that do not change any decision.
+// VERSION: 2026-10-15 v2 visual; not yet compiled in TradingView, check for errors after pasting
+strategy("MASTER_W5_BREAKOUT_RETEST v2", overlay=true, initial_capital=1000,
+     default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+     commission_type=strategy.commission.percent, commission_value=0.025,
+     process_orders_on_close=false, calc_on_every_tick=false, pyramiding=0, max_labels_count=500)
+
+pivK    = input.int(5, "Okret: broj svijeća sa svake strane", minval=1)
+proxPct = input.float(1.5, "Povratak do razine: unutar % iznad razine", minval=0.1, step=0.1)
+stopPct = input.float(3.0, "Zaštitni stop: % ispod razine", minval=0.5, step=0.5)
+smaExit = input.int(50, "Izlaz: zatvaranje ispod SMA", minval=1)
+expiry  = input.int(40, "Setup istječe nakon N svijeća", minval=1)
+startT  = input.time(timestamp("2023-01-01T00:00:00"), "Trguj od (AI era; samo prozor testa)")
+
+showLbl = input.bool(true, "Prikaži oznake s opisom (zadrži miš na oznaci)", group="Prikaz")
+cRes    = input.color(color.new(color.orange, 0), "Otpor / razina koja se čeka", group="Boje")
+cZone   = input.color(color.new(color.orange, 80), "Zona retesta", group="Boje")
+cWait   = input.color(color.new(color.orange, 93), "Pozadina: čeka povratak", group="Boje")
+cPos    = input.color(color.new(color.green, 90), "Pozadina: u poziciji", group="Boje")
+cRisk   = input.color(color.new(color.red, 82), "Zona rizika (razina do stopa)", group="Boje")
+
+// strict swing high confirmed pivK bars later (same definition as the Python engine, not ta.pivothigh)
+candidate = high[pivK]
+leftMax   = ta.highest(high, pivK)[pivK + 1]
+rightMax  = ta.highest(high, pivK)
+isPivot   = bar_index >= 2 * pivK and candidate > leftMax and candidate > rightMax
+var float res = na
+if isPivot
+    res := candidate
+
+var float armedLevel = na
+var int armedBar = na
+bool entrySig = false
+bool armEvt = false
+bool cancelEvt = false
+bool cancelExpiry = false
+float cancelLevel = na
+float sigLevel = na
+if not na(armedLevel)
+    if close < armedLevel or bar_index - armedBar > expiry
+        cancelEvt := true
+        cancelExpiry := not (close < armedLevel)
+        cancelLevel := armedLevel
+        armedLevel := na
+    else if bar_index > armedBar and low <= armedLevel * (1 + proxPct / 100) and close > armedLevel
+        entrySig := true
+        sigLevel := armedLevel
+        armedLevel := na
+if na(armedLevel) and not entrySig and not na(res) and close > res and close[1] <= res
+    armedLevel := res
+    armedBar := bar_index
+    armEvt := true
+
+sma50   = ta.sma(close, smaExit)
+inWin   = time >= startT
+flat    = strategy.position_size == 0
+buySig  = barstate.isconfirmed and inWin and flat and entrySig
+var float stopLvl = na
+var float posLevel = na
+if buySig
+    stopLvl := math.round_to_mintick(sigLevel * (1 - stopPct / 100))
+    posLevel := sigLevel
+    strategy.entry("W5", strategy.long)
+    strategy.exit("W5 stop", "W5", stop=stopLvl)
+exitSig = strategy.position_size > 0 and barstate.isconfirmed and close < sma50
+if strategy.position_size > 0
+    strategy.exit("W5 stop", "W5", stop=stopLvl)
+if exitSig
+    strategy.close("W5", comment="W5 izlaz")
+
+// ---------- visuals ----------
+inPos = strategy.position_size > 0
+bgcolor(inPos ? cPos : (not na(armedLevel) ? cWait : na), title="Pozadina: stanje (zeleno = u poziciji, narančasto = čeka retest)")
+
+plot(res, "Zadnji potvrđeni otpor (strop)", color=color.new(cRes, 35), style=plot.style_linebr)
+plot(sma50, "SMA50 (izlaz s dobiti)", color=color.new(color.blue, 0), linewidth=2)
+
+pArm = plot(armedLevel, "Razina koju čekamo (probijeni otpor)", color=cRes, style=plot.style_linebr, linewidth=2)
+pArmTop = plot(not na(armedLevel) ? armedLevel * (1 + proxPct / 100) : na, "Gornja granica zone retesta", color=color.new(cRes, 100), style=plot.style_linebr)
+fill(pArm, pArmTop, cZone, "Zona retesta (ovdje W5 čeka dodir i zatvaranje iznad)")
+
+pLv = plot(inPos ? posLevel : na, "Razina ulaza (bivši otpor, sada potpora)", color=color.new(color.teal, 0), style=plot.style_linebr)
+pSt = plot(inPos ? stopLvl : na, "Zaštitni stop", color=color.red, style=plot.style_linebr, linewidth=2)
+fill(pLv, pSt, cRisk, "Zona rizika (od razine do stopa)")
+
+plotshape(buySig, "Signal za kupnju (iduće otvaranje)", shape.triangleup, location.belowbar, color.green, size=size.small)
+plotshape(exitSig, "Signal za prodaju (iduće otvaranje)", shape.triangledown, location.abovebar, color.orange, size=size.small)
+
+lvlTxt = not na(armedLevel) ? str.tostring(armedLevel, format.mintick) : "-"
+if showLbl
+    if armEvt
+        label.new(bar_index, high, "Proboj", style=label.style_label_down, color=color.new(color.orange, 10), textcolor=color.white, size=size.small, tooltip="PROBOJ (još NIJE signal za kupnju)\nDnevno zatvaranje je iznad otpora " + str.tostring(armedLevel, format.mintick) + ".\nW5 sada čeka povratak cijene na tu razinu: najniža cijena dana smije doći do razine ili najviše " + str.tostring(proxPct, "#.#") + " % iznad nje, a dan se mora zatvoriti IZNAD razine.\nAko se zatvori ispod razine ili prođe " + str.tostring(expiry) + " svijeća bez povratka, proboj se poništava.")
+    if cancelEvt
+        label.new(bar_index, low, "Poništeno", style=label.style_label_up, color=color.new(color.gray, 10), textcolor=color.white, size=size.small, tooltip="SETUP PONIŠTEN\n" + (cancelExpiry ? "Prošlo je " + str.tostring(expiry) + " svijeća bez povratka na razinu " + str.tostring(cancelLevel, format.mintick) + ", pa W5 odustaje." : "Dan se zatvorio ispod razine " + str.tostring(cancelLevel, format.mintick) + ". Proboj je bio lažan, W5 ne kupuje."))
+    if buySig
+        label.new(bar_index, low, "KUPI", style=label.style_label_up, color=color.new(color.green, 5), textcolor=color.white, size=size.small, tooltip="SIGNAL ZA KUPNJU (kupnja po otvaranju idućeg dana)\nRetest uspio: cijena se vratila na razinu " + str.tostring(sigLevel, format.mintick) + " i dan se zatvorio iznad nje, dakle bivši strop drži kao pod.\nZaštitni stop: " + str.tostring(stopLvl, format.mintick) + " (" + str.tostring(stopPct, "#.#") + " % ispod razine).\nIzlaz s dobiti: zatvaranje ispod SMA" + str.tostring(smaExit) + ".")
+    bool closedNow = strategy.position_size[1] > 0 and strategy.position_size == 0
+    if closedNow
+        int idx = strategy.closedtrades - 1
+        bool viaStop = strategy.closedtrades.exit_id(idx) == "W5 stop"
+        float pct = strategy.closedtrades.profit_percent(idx)
+        label.new(bar_index, viaStop ? low : high, (viaStop ? "STOP " : "IZLAZ ") + str.tostring(pct, "#.#") + " %", style=viaStop ? label.style_label_up : label.style_label_down, color=pct >= 0 ? color.new(color.green, 5) : color.new(color.red, 5), textcolor=color.white, size=size.small, tooltip=(viaStop ? "IZLAZ NA STOPU\nCijena je pala do zaštitnog stopa. Gubitak je ograničen, ali ako je dan otvoren s prazninom (gap) ispod stopa, izvršenje je na lošijoj cijeni." : "IZLAZ S DOBITI / PO TRENDU\nDan se zatvorio ispod SMA" + str.tostring(smaExit) + ", pa W5 prodaje po otvaranju idućeg dana.\nTrend je oslabio, dobit se ne drži do stopa.") + "\nRezultat trgovine: " + str.tostring(pct, "#.##") + " %")
+
+var tbl = table.new(position.top_right, 1, 4)
+if barstate.islast
+    stateTxt = not na(armedLevel) ? "Čeka povratak do razine " + str.tostring(armedLevel, format.mintick) : (inPos ? "U poziciji, stop " + str.tostring(stopLvl, format.mintick) : "Nema aktivnog setupa")
+    stateTip = not na(armedLevel) ? "Proboj se dogodio. W5 čeka da cijena dotakne razinu (zona retesta, narančasto) i zatvori iznad nje. Tek tada je signal za kupnju." : (inPos ? "Pozicija je otvorena (zelena pozadina). Izlaz: stop (crvena crta) ili zatvaranje ispod SMA" + str.tostring(smaExit) + "." : "Trenutno nema proboja koji se prati. Zadnji potvrđeni otpor je narančasta tanka crta.")
+    table.cell(tbl, 0, 0, "W5: proboj i retest", text_color=color.white, bgcolor=color.new(color.gray, 20), tooltip="Strategija W5: kupuje tek kad bivši otpor (strop) postane potpora (pod). 1) proboj zatvaranjem iznad otpora, 2) povratak na razinu, 3) zatvaranje iznad nje = kupnja. ID: SWING_W5_SR_BREAKOUT_RETEST")
+    table.cell(tbl, 0, 1, stateTxt, text_color=color.white, bgcolor=color.new(color.gray, 20), tooltip=stateTip)
+    table.cell(tbl, 0, 2, "Narančasto: čeka retest | Zeleno: u poziciji | Crveno: rizik", text_color=color.white, bgcolor=color.new(color.gray, 20), tooltip="Narančasta zona: razina koju W5 čeka. Zelena pozadina: otvorena pozicija. Crvena zona: razmak između razine i zaštitnog stopa. Plava crta: SMA" + str.tostring(smaExit) + " (izlaz s dobiti).")
+    table.cell(tbl, 0, 3, "Istraživanje, nije savjet. Nema naloga.", text_color=color.white, bgcolor=color.new(color.gray, 20))
+
+if buySig
+    alert("W5_BREAKOUT_RETEST: dnevno zatvaranje ispunjava pravilo ulaza. Samo informacija.", alert.freq_once_per_bar_close)
+if exitSig
+    alert("W5_BREAKOUT_RETEST: dnevno zatvaranje ispod SMA50. Samo informacija.", alert.freq_once_per_bar_close)

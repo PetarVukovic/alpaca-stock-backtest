@@ -1,0 +1,98 @@
+{
+  "id": "FX1_EURUSD_CASH_TREND",
+  "frozen_at": "2026-10-13",
+  "status": "RESEARCH_NOT_APPROVED",
+  "hypothesis": "Postupno prilagodavanje valutnih izlozenosti nakon promjena relativne monetarne politike moze uzrokovati visemjesecnu postojanost tecaja. Korporativni hedgeri i obvezni konverteri ne maksimiziraju kratkorocni prinos; ovo je pretpostavka, ne dokaz prednosti.",
+  "instrument": "EURUSD CASH IDEALPRO conid 12087792",
+  "account_currency": "EUR",
+  "data": "data/ohlcv/EURUSD_1d.csv",
+  "cutoff": "2026-10-09",
+  "signal": "At completed t close: close < SMA200 and SMA50 < SMA200. Enter next bar open, EUR cash sold for USD. Exit next open if not condition or held bars >=60.",
+  "fast": 50,
+  "slow": 200,
+  "atr": 20,
+  "stop_atr": 2,
+  "max_hold": 60,
+  "risk_fraction": 0.005,
+  "cash_cap": 0.95,
+  "capital_eur": [
+    500,
+    1000,
+    2000
+  ],
+  "primary_capital_eur": 1000,
+  "stop": "EURUSD upper stop entry midpoint +2*ATR20(t); USD exposure loses EUR value when EURUSD rises. Fixed, active entry day, gap exit max(open,stop), adverse spread/slippage; no same-day reentry.",
+  "sizing": "Whole EUR units, exact EUR loss converting USD at stop ask plus entry and exit commissions <=0.5% equity, <=95% cash. No negative cash, no leverage.",
+  "costs": {
+    "commission_usd_min": 2,
+    "commission_rate": 0.00002,
+    "half_spread_pips": 0.5,
+    "slippage_pips": 0.5,
+    "pip": 0.0001,
+    "stress": [
+      1,
+      1.5,
+      2,
+      3
+    ],
+    "interest_base": 0,
+    "interest_note": "Cash interest excluded; no borrowing. Report as limitation and opportunity cost, not actual broker total return."
+  },
+  "validation": {
+    "IS": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ],
+    "WF_annual": [
+      2021,
+      2022,
+      2023
+    ],
+    "HO": [
+      "2024-01-01",
+      "2026-10-09"
+    ],
+    "embargo_bars": 5,
+    "split_cash_reset": true,
+    "split_final_liquidation": "last close adverse plus fee",
+    "holdout_last": true,
+    "no_fitting": true
+  },
+  "sensitivity": {
+    "fast": [
+      40,
+      60
+    ],
+    "slow": [
+      160,
+      240
+    ],
+    "atr": [
+      16,
+      24
+    ],
+    "stop_atr": [
+      1.6,
+      2.4
+    ],
+    "max_hold": [
+      48,
+      72
+    ]
+  },
+  "bootstrap": {
+    "runs": 2000,
+    "block_trades": 5,
+    "seed": 13102026
+  },
+  "research_boundaries": [
+    "One hypothesis; no winner claim",
+    "No orders or broker deployment",
+    "Midpoint fills and stop simulation are scenarios, not proven executable fills",
+    "Existing equity Critic concentration gate not silently adapted to FX; no PASS"
+  ]
+}

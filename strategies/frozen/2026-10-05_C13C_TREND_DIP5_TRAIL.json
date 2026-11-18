@@ -1,0 +1,31 @@
+{
+  "id": "C13C_TREND_DIP5_TRAIL",
+  "created": "2026-10-05",
+  "family": "pullback",
+  "hypothesis": "Pad od 5 % u trendu, ali izlaz prati vrh (trailing) umjesto fiksnih 10 dana.",
+  "mechanism": "Isti ulaz kao C13A; testira je li bolje pustiti dobitak da raste.",
+  "persistence": "Isto kao C13A.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "dip_in_trend",
+    "trend_window": 200,
+    "dip_bars": 5,
+    "dip_pct": 0.05
+  },
+  "exit": {
+    "type": "trailing",
+    "trailing_pct": 0.1
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

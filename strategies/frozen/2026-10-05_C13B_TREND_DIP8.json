@@ -1,0 +1,32 @@
+{
+  "id": "C13B_TREND_DIP8",
+  "created": "2026-10-05",
+  "family": "pullback",
+  "hypothesis": "Dublji pad od 8 % unutar trenda daje bolju cijenu uz rjeđe prilike.",
+  "mechanism": "Isti mehanizam kao C13A, ali traži jači pad, pa je manje šuma.",
+  "persistence": "Isto kao C13A.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "dip_in_trend",
+    "trend_window": 200,
+    "dip_bars": 5,
+    "dip_pct": 0.08
+  },
+  "exit": {
+    "type": "risk",
+    "stop_pct": 0.1,
+    "hold_bars": 10
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

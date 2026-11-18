@@ -1,0 +1,31 @@
+{
+  "id": "C17B_VOL_SQUEEZE_TIGHT",
+  "created": "2026-10-05",
+  "family": "volatility",
+  "hypothesis": "Strože smirenje (0,7) za rjeđe, čišće signale.",
+  "mechanism": "Isto kao C17A.",
+  "persistence": "Isto kao C17A.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "volatility_breakout",
+    "vol_window": 20,
+    "lookback": 63,
+    "compression": 0.7
+  },
+  "exit": {
+    "type": "trailing",
+    "trailing_pct": 0.12
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

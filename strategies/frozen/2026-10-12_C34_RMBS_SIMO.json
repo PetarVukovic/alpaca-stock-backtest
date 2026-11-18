@@ -1,0 +1,38 @@
+{
+  "id": "C34_RMBS_SIMO_20261012",
+  "parent": "C34_MEMORY_600EUR",
+  "symbols": [
+    "RMBS",
+    "SIMO"
+  ],
+  "sizes": [
+    "whole",
+    "fractional"
+  ],
+  "periods": {
+    "IS": [
+      "2016-01-04",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-04",
+      "2023-12-29"
+    ],
+    "RECENT": [
+      "2024-01-01",
+      "2026-10-09"
+    ]
+  },
+  "fx": "reports/data/2026-10-12_ecb.xml",
+  "capital_eur": 600,
+  "rules": "Unchanged C34 engine: C13C signals; 95% equity sizing, no 500 USD cap; max(1USD,.025%) each side plus .01/share; 0.1% entry FX; no dividends/tax/ADR fees; research only",
+  "hashes": {
+    "lab/research/c34_accounts.py": "f62a1aba68834b4b58ddec84274ae669bb1d9f68f56410acad529ec81dd202ac",
+    "lab/research/memory_swing.py": "96cbc9dca31a5fbc22675ed90f5ac6eb609853008fb05230f89731a75a3f1d8f",
+    "app/backend/strategies/c13c.py": "1b18032ef146448e1d478d587a1d0e0329bef625bb2e5805e8346dcdee964742",
+    "data/ohlcv/RMBS_1d.csv": "de78c44ca0aa6dcab9ee5c32b3f36fb2b3007e16db79ffc11a146c20198042b7",
+    "data/ohlcv/SIMO_1d.csv": "80a6ac6c835a7d8027ec663e6f9f3c8d4ae7bd3d56c82e85eb4e992b17dd18b9",
+    "reports/data/2026-10-12_ecb.xml": "7ddf0f32a828b2b4778e4200389a2cd6cdb63e685b9477be256a732e9e771e9d",
+    "scripts/replay_c34_rmbs_simo_20261012.py": "71d2d7ef25ab57593ecda878e9b5453e39c8a62f5e454045fa9484060f39eb98"
+  }
+}

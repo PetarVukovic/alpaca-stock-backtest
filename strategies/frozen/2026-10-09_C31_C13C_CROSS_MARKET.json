@@ -1,0 +1,21 @@
+{
+  "id": "C31_C13C_CROSS_MARKET_20261009",
+  "purpose": "User-requested descriptive transfer of unchanged C13C signals to forex and crypto perpetuals; not a new approved strategy",
+  "registered_before_results": true,
+  "symbols": ["OANDA:EURUSD", "OANDA:GBPUSD", "BINANCE:BTCUSDT.P"],
+  "resolution": "1D standard candles",
+  "periods": {
+    "ALL": ["2021-01-01T00:00:00Z", "2026-10-09T00:00:00Z"],
+    "WF": ["2021-01-01T00:00:00Z", "2024-01-01T00:00:00Z"],
+    "HO_SEEN": ["2024-01-01T00:00:00Z", "2026-10-09T00:00:00Z"]
+  },
+  "entry": "First eligible completed signal bar on/after start: close>SMA200 and close/close[5]-1<=-0.05. Enter next open. No shorts.",
+  "exit": "Monotonic 90% of highest known price since entry; initial anchor includes modeled entry commission to preserve local C13C convention; current high updates next-session stop only; gap uses worse open.",
+  "sizing": "TradingView percent_of_equity 90%, native contract precision, margin_long=100; one position, no leverage, initial_capital=10000 in chart quote currency. This replaces stock whole-share sizing for cross-market comparability and is explicitly not the 500 EUR application profile.",
+  "cost": "BASE: 0.05% per side plus 1 minimum tick per side. STRESS: 0.10% per side plus 1 tick. Generic declared assumptions, not verified broker fee schedules; no historical spread series, funding, swap, tax or FX conversion fees.",
+  "matrix": "BASE on ALL/WF/HO_SEEN for each of 3 symbols; STRESS on ALL for each symbol: 12 prespecified cases, no parameter search",
+  "cutoff": "Only bars with time_close<=end UTC; last incomplete daily bar excluded. Do not queue a next-open entry where next daily close would exceed cutoff. Open positions marked to final completed close, no forced close.",
+  "metrics": "Native closed-trade statistics plus independently recomputed daily close equity, annual returns, drawdown, complete trade export and buy-and-hold price comparator",
+  "limitations": ["Descriptive transfer only, original 2016-2020 IS absent from requested interval", "BTC perpetual cannot supply full 2016-2020 history", "HO already seen, not pristine out of sample", "No claim of net perpetual or forex profitability without historical funding/swap", "No broker orders or changes to approved_list"],
+  "status": "FROZEN_RESEARCH_ONLY"
+}

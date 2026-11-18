@@ -1,0 +1,100 @@
+{
+  "code_files": [
+    "lab/aichain/sim.py",
+    "lab/aichain/contenders.py"
+  ],
+  "costs": {
+    "bps_per_side": 2.5,
+    "stress": [
+      2,
+      3
+    ],
+    "tick": 0
+  },
+  "execution": "decide at close of day t, fill at open of day t+1, long-only, no leverage, fractional units, sleeve = one ticker with own capital, USD treated as EUR-equivalent",
+  "id": "AICHAIN_K4_TSMOM_126",
+  "label": "pre-registered contender",
+  "params": {
+    "lookback": 126
+  },
+  "rules": [
+    "Hold while the 126-day return is positive; exit at the next open once it is <= 0."
+  ],
+  "segments": {
+    "ai_chips_logic": [
+      "NVDA",
+      "AMD",
+      "AVGO",
+      "MRVL",
+      "TSM",
+      "INTC",
+      "ARM",
+      "TXN",
+      "MCHP",
+      "ON",
+      "QCOM"
+    ],
+    "cloud": [
+      "MSFT",
+      "AMZN",
+      "GOOGL",
+      "META",
+      "ORCL",
+      "NBIS",
+      "VRT"
+    ],
+    "equipment": [
+      "AMAT",
+      "LRCX",
+      "KLAC",
+      "ASML",
+      "ONTO",
+      "MKSI",
+      "ENTG",
+      "ACMR",
+      "FORM",
+      "TER"
+    ],
+    "mem_interface_storage": [
+      "RMBS",
+      "SIMO",
+      "MRAM",
+      "NTAP"
+    ],
+    "memory": [
+      "MU",
+      "WDC",
+      "STX"
+    ],
+    "network_servers": [
+      "ANET",
+      "CRDO",
+      "ALAB",
+      "COHR",
+      "LITE",
+      "SMCI",
+      "DELL",
+      "HPE"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS; no tuning",
+  "universe_sha256": "8216d8dad20f013a035c1de2cda3a2d728c28106718d146046bf0531e4881d0a",
+  "windows": {
+    "ai_era": [
+      "2023-01-01",
+      "2026-10-05"
+    ],
+    "full": [
+      "2016-01-01",
+      "2026-10-05"
+    ],
+    "y2016_2020": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "y2021_2022": [
+      "2021-01-01",
+      "2022-12-31"
+    ]
+  }
+}

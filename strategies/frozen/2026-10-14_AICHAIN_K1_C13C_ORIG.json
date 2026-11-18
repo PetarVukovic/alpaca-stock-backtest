@@ -1,0 +1,108 @@
+{
+  "code_files": [
+    "lab/aichain/sim.py",
+    "lab/aichain/contenders.py"
+  ],
+  "costs": {
+    "bps_per_side": 2.5,
+    "stress": [
+      2,
+      3
+    ],
+    "tick": 0
+  },
+  "execution": "decide at close of day t, fill at open of day t+1, long-only, no leverage, fractional units, sleeve = one ticker with own capital, USD treated as EUR-equivalent",
+  "id": "AICHAIN_K1_C13C_ORIG",
+  "label": "pre-registered contender",
+  "params": {
+    "dip": 0.05,
+    "dip_bars": 5,
+    "mean": 20,
+    "reentry": false,
+    "sma": 200,
+    "trail": 0.1
+  },
+  "rules": [
+    "Signal at close: close > SMA200 and 5-day return <= -5 percent; buy at the next open.",
+    "Trailing stop = max(previous stop, 0.90 * known peak), rounded to cents, never lowered.",
+    "Intraday stop if low <= stop: exit at the stop price, or at the open if the bar gapped below.",
+    "A new high raises the stop only from the next session. No take-profit, no time exit."
+  ],
+  "segments": {
+    "ai_chips_logic": [
+      "NVDA",
+      "AMD",
+      "AVGO",
+      "MRVL",
+      "TSM",
+      "INTC",
+      "ARM",
+      "TXN",
+      "MCHP",
+      "ON",
+      "QCOM"
+    ],
+    "cloud": [
+      "MSFT",
+      "AMZN",
+      "GOOGL",
+      "META",
+      "ORCL",
+      "NBIS",
+      "VRT"
+    ],
+    "equipment": [
+      "AMAT",
+      "LRCX",
+      "KLAC",
+      "ASML",
+      "ONTO",
+      "MKSI",
+      "ENTG",
+      "ACMR",
+      "FORM",
+      "TER"
+    ],
+    "mem_interface_storage": [
+      "RMBS",
+      "SIMO",
+      "MRAM",
+      "NTAP"
+    ],
+    "memory": [
+      "MU",
+      "WDC",
+      "STX"
+    ],
+    "network_servers": [
+      "ANET",
+      "CRDO",
+      "ALAB",
+      "COHR",
+      "LITE",
+      "SMCI",
+      "DELL",
+      "HPE"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS; no tuning",
+  "universe_sha256": "8216d8dad20f013a035c1de2cda3a2d728c28106718d146046bf0531e4881d0a",
+  "windows": {
+    "ai_era": [
+      "2023-01-01",
+      "2026-10-05"
+    ],
+    "full": [
+      "2016-01-01",
+      "2026-10-05"
+    ],
+    "y2016_2020": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "y2021_2022": [
+      "2021-01-01",
+      "2022-12-31"
+    ]
+  }
+}

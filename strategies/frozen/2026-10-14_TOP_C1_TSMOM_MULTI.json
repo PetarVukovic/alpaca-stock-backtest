@@ -1,0 +1,62 @@
+{
+  "code_file": "lab/top10/strategies/top_c1_tsmom_multi.py",
+  "code_sha256": "41331f242bdf73473478c67e2d47214909d2f5662543b1364cd088fc6cc30cda",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "BTCUSDT": "79eb3d34f50137c79a2a811a3a5e3925af7faefc08b2a6696b62dfed547db8cc",
+    "ETHUSDT": "d1e50cadddc5af8c751e8e3de275314ec421716c0c7af52d9f4f7a80ec090e63",
+    "GLD": "7b03688892549854d422069e522a829e81efadafcb16be9cc15a20ee8717190b",
+    "MU": "fdedb4cb163bfc889b7d9e3658caad81407fe7624211ecbe009ee2b2150625c3",
+    "SLV": "9dc4736cc7e48631cde884e5eea96b190dd8737cd671716dee2bef8e20e95ea4",
+    "SMH": "b04b8271e39d8fa6bdb6e8f2e745fe278debec26663046b8d0978747292611d1",
+    "STX": "d1614d1b5a4108f76688857f38ee60ecfc0db093fb00d9eecaa5309aa260065b",
+    "WDC": "4d948b7455e383dcb36312907d9a5bbde2b94af221b3d6bfd226b48d40fd36af"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "Investors incorporate persistent macro and earnings news gradually; slow institutional allocation and investors selling winners too early can sustain trends across assets. A positive prior-year return excluding the latest month may capture this persistence, while avoiding some short-lived reversal. Crowding and abrupt regime changes can erase it.",
+  "id": "TOP_C1_TSMOM_MULTI",
+  "params": {
+    "lookback": 252,
+    "skip": 21,
+    "threshold": 0.0
+  },
+  "rules": [
+    "Use the shared equity-session calendar, including for BTCUSDT and ETHUSDT; no weekend decisions.",
+    "At the close of the first available session of each ISO week, compute close[t-skip] / close[t-lookback] - 1.",
+    "Hold each asset whose return is strictly above threshold and whose full lookback is available; otherwise hold cash.",
+    "Divide all capital equally among eligible assets; zero eligible assets means all cash. No leverage or shorts.",
+    "Keep target weights unchanged until the next weekly decision. The engine restores these targets at each next open and charges drift turnover.",
+    "Lookback 252 and skip 21 are conventional equity-session approximations of a year and a month, declared before evaluation."
+  ],
+  "split_kind": "equity",
+  "splits": {
+    "HO": [
+      "2024-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "timeframe": "1d",
+  "universe": [
+    "GLD",
+    "SLV",
+    "BTCUSDT",
+    "ETHUSDT",
+    "MU",
+    "WDC",
+    "STX",
+    "SMH"
+  ]
+}

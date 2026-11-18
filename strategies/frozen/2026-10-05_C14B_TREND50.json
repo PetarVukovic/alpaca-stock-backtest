@@ -1,0 +1,29 @@
+{
+  "id": "C14B_TREND50",
+  "created": "2026-10-05",
+  "family": "trend",
+  "hypothesis": "Najbrži trend: 50-dnevni prosjek.",
+  "mechanism": "Dionice memorijskog ciklusa se kreću u dugim valovima. Kad je cijena iznad dugog prosjeka, većina kupaca i fondova je u trendu, a kad padne ispod, val obično slabi i nastavlja padati. Brži prosjek brže izlazi, ali češće griješi.",
+  "persistence": "Ciklus nestašica-višak se ponavlja, a veliki fondovi sporo mijenjaju poziciju, pa trend traje tjednima do mjesecima.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "trend",
+    "trend_window": 50
+  },
+  "exit": {
+    "type": "trend",
+    "trend_window": 50
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

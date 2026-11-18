@@ -1,0 +1,29 @@
+{
+  "id": "C15A_BREAKOUT20_TRAIL10",
+  "created": "2026-10-05",
+  "family": "breakout",
+  "hypothesis": "Proboj najviše cijene iz zadnjih 20 dana označava novi val kupnje.",
+  "mechanism": "Kad cijena probije dugotrajnu gornju granicu, drugi sudionici prisilno kupuju (zatvaranje kratkih pozicija, trend-fondovi).",
+  "persistence": "Likvidnost pobjegne gore tek nakon proboja, a trailing izlaz čuva dobitak.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "breakout",
+    "lookback": 20
+  },
+  "exit": {
+    "type": "trailing",
+    "trailing_pct": 0.1
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

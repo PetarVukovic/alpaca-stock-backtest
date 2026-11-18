@@ -1,0 +1,72 @@
+// COMPILED OK on the TradingView server (2026-10-14, pine_check); behaviour not yet compared trade by trade with the lab engine.
+// CDT_H1_TREND_4H - Memory Lab crypto day-trading research (2026-10-14). Research only, NOT a lab Critic PASS.
+// Replica of lab/crypto_dt/strategies/cdt_h1_trend_4h.py. Use on the 4h chart of BINANCE:BTCUSDT, ETHUSDT or SOLUSDT.
+// The lab holds three assets (each capped at 1/3 of capital); this script runs ONE asset with its own sizing, so the
+// Strategy Tester equity is that one asset on 100% capital scale, not the lab portfolio.
+// Known differences vs the lab: realized vol uses ta.stdev (sample, like pandas); TradingView 4h bars open at 00/04/... UTC only
+// when the chart timezone is UTC and the exchange session is 24/7 (set the chart timezone to UTC).
+// No alerts, no orders to any broker: this is a Strategy Tester replica only.
+//@version=6
+strategy("CDT_H1_TREND_4H", overlay=true, initial_capital=10000,
+     default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+     commission_type=strategy.commission.percent, commission_value=0.10,   // lab cost: 10 bps per side for crypto
+     process_orders_on_close=false,                                         // decide at bar close, fill at NEXT bar open
+     pyramiding=0, margin_long=100, margin_short=100, calc_on_every_tick=false)
+
+// ---- Inputs = PARAMS defaults (declared before looking at results) ----
+nFast       = input.int(20,  "fast Donchian (bars)", minval=2)
+nMid        = input.int(40,  "mid Donchian (bars)",  minval=2)
+nSlow       = input.int(80,  "slow Donchian (bars)", minval=2)
+exitRatio   = input.float(0.5, "exit window / entry window", minval=0.1, maxval=1.0, step=0.05)
+volWindow   = input.int(90,  "vol window (bars)", minval=2)
+sigmaTarget = input.float(0.5, "annual vol target (0 = no vol sizing)", minval=0.0, step=0.05)
+barsPerYear = 6 * 365   // 4h bars per year
+
+// ---- Rules 1-2: three-speed Donchian state. Enter on a close above the highest high of the prior N bars,
+//      leave on a close below the lowest low of the prior round(N * exitRatio) bars (both windows exclude the current bar). ----
+donchianState(n) =>
+    m = math.max(1, math.round(n * exitRatio))
+    up   = close > ta.highest(high, n)[1]
+    down = close < ta.lowest(low, m)[1]
+    var float state = 0.0
+    if up
+        state := 1.0
+    else if down
+        state := 0.0
+    state
+
+score = (donchianState(nFast) + donchianState(nMid) + donchianState(nSlow)) / 3.0
+
+// ---- Rule 3: volatility sizing = clip(target / annualised realized vol, 0, 1); NaN during warm-up means flat ----
+logRet = math.log(close / close[1])
+vol    = ta.stdev(logRet, volWindow, false) * math.sqrt(barsPerYear)
+scale  = sigmaTarget > 0 ? (na(vol) ? 0.0 : math.min(1.0, math.max(0.0, sigmaTarget / vol))) : 1.0
+target = score * scale        // share of capital in this asset (the lab then divides by the number of assets)
+
+// ---- Rule 4: move the position to the target weight at the NEXT open; long only ----
+targetQty = strategy.equity * target / close
+delta     = targetQty - strategy.position_size
+if math.abs(delta) * close > 0.005 * strategy.equity
+    if delta > 0
+        strategy.order("Add", strategy.long, qty=delta)
+    else
+        strategy.order("Trim", strategy.short, qty=-delta)
+
+// ---- Plots ----
+plot(ta.highest(high, nSlow)[1], "slow entry channel", color=color.new(color.teal, 40))
+plot(ta.lowest(low, math.max(1, math.round(nSlow * exitRatio)))[1], "slow exit channel", color=color.new(color.orange, 40))
+bgcolor(score > 0 ? color.new(color.green, 90) : na, title="score > 0")
+plotshape(score > 0 and score[1] == 0, "enter", shape.triangleup, location.belowbar, color.green, size=size.tiny)
+plotshape(score == 0 and score[1] > 0, "flat", shape.triangledown, location.abovebar, color.red, size=size.tiny)
+
+// ---- Info table ----
+var table info = table.new(position.top_right, 2, 4, border_width=1)
+if barstate.islast
+    table.cell(info, 0, 0, "ID", text_color=color.white, bgcolor=color.gray)
+    table.cell(info, 1, 0, "CDT_H1_TREND_4H", text_color=color.white, bgcolor=color.gray)
+    table.cell(info, 0, 1, "score (0..1)")
+    table.cell(info, 1, 1, str.tostring(score, "#.##"))
+    table.cell(info, 0, 2, "target weight")
+    table.cell(info, 1, 2, str.tostring(target, "#.##"))
+    table.cell(info, 0, 3, "status")
+    table.cell(info, 1, 3, "research only, not Critic PASS")

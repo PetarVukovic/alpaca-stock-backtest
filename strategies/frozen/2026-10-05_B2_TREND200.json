@@ -1,0 +1,30 @@
+{
+  "id": "B2_TREND200",
+  "created": "2026-10-05",
+  "family": "baseline",
+  "hypothesis": "Osnovna linija: drži samo dok je cijena iznad 200-dnevnog prosjeka.",
+  "mechanism": "Dionice memorijskog ciklusa se kreću u dugim valovima. Kad je cijena iznad dugog prosjeka, većina kupaca i fondova je u trendu, a kad padne ispod, val obično slabi i nastavlja padati.",
+  "persistence": "Ciklus nestašica-višak se ponavlja, a veliki fondovi sporo mijenjaju poziciju, pa trend traje tjednima do mjesecima.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX",
+    "SMH"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "trend",
+    "trend_window": 200
+  },
+  "exit": {
+    "type": "trend",
+    "trend_window": 200
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

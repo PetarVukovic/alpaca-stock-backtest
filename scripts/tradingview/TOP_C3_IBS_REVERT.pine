@@ -1,0 +1,59 @@
+//@version=6
+// UNVERIFIED: trade-by-trade and portfolio parity with the Python engine are not verified.
+// COMPILED OK on the TradingView server (2026-10-14); behaviour not yet compared trade by trade with the lab engine. Research only; no order-routing alerts.
+// One-leg signal replica of the five-asset Python basket, not portfolio P&L parity.
+// Use a daily SPY/QQQ/SMH/GLD/SLV chart with matching common-session history.
+// Python restores 20% of basket equity at the next open; here quantity is estimated
+// from this single-leg account at the close. Gaps, feeds and missing sessions can differ.
+strategy("TOP_C3_IBS_REVERT — jedna sastavnica", overlay=true, initial_capital=10000,
+     commission_type=strategy.commission.percent, commission_value=0.025,
+     process_orders_on_close=false, calc_on_every_tick=false, pyramiding=100, margin_long=100)
+
+trendLength = input.int(200, "Broj dana za prosječnu cijenu", minval=1)
+entryIbs = input.float(0.2, "Ulaz: položaj u dnevnom rasponu", minval=0, maxval=1)
+exitIbs = input.float(0.7, "Izlaz: položaj u dnevnom rasponu", minval=0, maxval=1)
+holdDays = input.int(5, "Najviše dana držanja", minval=1)
+if not timeframe.isdaily or timeframe.multiplier != 1
+    runtime.error("Koristi dnevni grafikon.")
+if syminfo.ticker != "SPY" and syminfo.ticker != "QQQ" and syminfo.ticker != "SMH" and syminfo.ticker != "GLD" and syminfo.ticker != "SLV"
+    runtime.error("Odaberi SPY, QQQ, SMH, GLD ili SLV.")
+
+// Entry filter includes today's close and requires the full 200-bar window.
+average = ta.sma(close, trendLength)
+dailyRange = high - low
+ibs = dailyRange > 0 ? (close - low) / dailyRange : na
+var bool active = false
+var int age = 0
+bool entrySignal = false
+bool exitSignal = false
+if barstate.isconfirmed
+    if active
+        // Signal day has age zero; the next-open fill day is holding day one.
+        age += 1
+        // A zero-range bar cannot trigger an IBS exit, but the time exit still works.
+        if (not na(ibs) and ibs >= exitIbs) or age >= holdDays
+            active := false
+            exitSignal := true
+    else if not na(average) and close > average and not na(ibs) and ibs <= entryIbs
+        active := true
+        age := 0
+        entrySignal := true
+    // No same-close reentry. The trend filter is not an exit condition.
+    target = active ? 1.0 / 5.0 : 0.0
+    desired = math.max(strategy.equity, 0) * target / close
+    difference = desired - strategy.position_size
+    if difference > 0
+        strategy.order("Dopuna", strategy.long, qty=difference, disable_alert=true)
+    else if difference < 0
+        strategy.order("Smanjenje", strategy.short, qty=math.min(-difference, strategy.position_size), disable_alert=true)
+
+plot(average, "Prosjek zadnjih 200 dana (zadano)", color=color.blue)
+plot(ibs, "Položaj zatvaranja u dnevnom rasponu", display=display.data_window)
+plot(active ? 20 : 0, "Ciljani udio (%)", display=display.data_window)
+plotshape(entrySignal, title="Odluka o kupnji", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(exitSignal, title="Odluka o prodaji", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+var info = table.new(position.top_right, 1, 3)
+if barstate.islast
+    table.cell(info, 0, 0, "TOP_C3_IBS_REVERT")
+    table.cell(info, 0, 1, "istraživanje · jedna sastavnica · 20% kapitala")
+    table.cell(info, 0, 2, "Odluka na zatvaranju → iduće otvaranje")

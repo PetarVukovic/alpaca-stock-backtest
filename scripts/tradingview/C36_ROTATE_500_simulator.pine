@@ -1,0 +1,179 @@
+//@version=6
+indicator("ROTATE 500 EUR — zlato i srebro SIM", shorttitle="ROTATE500", overlay=false, max_labels_count=500, max_bars_back=1000)
+// C36 replica: no strategy.*, no broker orders, no webhook payloads.
+// One shared cash account. Monthly decisions use previous completed daily bars.
+// Opening-price fills are recorded ONLY after the daily bar closes.
+float initial = input.float(500, "Početni virtualni kapital EUR", minval=50)
+int startDate = input.time(timestamp("01 Oct 2025 00:00 +0200"), "Početak simulacije")
+string gold = input.symbol("EURONEXT:PHAU", "Zlato — EUR listing")
+string silver = input.symbol("EURONEXT:PHAG", "Srebro — EUR listing")
+float minFee = input.float(3, "Minimalna provizija EUR / nalog", minval=0)
+float rate = input.float(0.05, "Provizija % nominale", minval=0) / 100
+float friction = input.float(0.05, "Odstupanje cijene % po strani", minval=0, maxval=10) / 100
+bool showLabels = input.bool(true, "Prikaži simulirane kupnje i prodaje")
+// Rule parameters intentionally fixed to the C36 baseline.
+f_features() =>
+    float momentum = close / close[126] - 1
+    float trend = ta.sma(close, 200)
+    float vol = ta.stdev(math.log(close / close[1]), 60, false) * math.sqrt(252)
+    [time, open, close, momentum[1], trend[1], vol[1], close[1], syminfo.currency]
+[gt, go, gc, gm, ga, gv, gp, gcur] = request.security(gold, "1D", f_features(), gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+[st, so, sc, sm, sa, sv, sp, scur] = request.security(silver, "1D", f_features(), gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
+if not timeframe.isdaily or timeframe.multiplier != 1 or not chart.is_standard
+    runtime.error("Koristi standardni dnevni grafikon 1D, bez Heikin Ashi/Renko.")
+if str.replace_all(ticker.standard(syminfo.tickerid), "_DLY", "") != str.replace_all(gold, "_DLY", "")
+    runtime.error("Otvori grafikon simbola Zlato iz postavki: zadano EURONEXT:PHAU.")
+// gaps_on may return an empty currency before the requested history exists.
+bool currenciesReady = not na(gt) and not na(st) and gcur != "" and scur != ""
+if currenciesReady and (gcur != "EUR" or scur != "EUR")
+    runtime.error("Oba instrumenta moraju biti u EUR. Primljeno: " + gcur + " / " + scur)
+f_fee(float gross) =>
+    gross > 0 ? math.max(minFee, gross * rate) : 0.0
+f_buy_cost(int q, float price) =>
+    q * price * (1 + friction) + f_fee(q * price)
+f_money(float x) =>
+    str.tostring(x, "#.00") + " €"
+var float cash = initial
+var float totalFees = 0
+var float totalSlip = 0
+var float realized = 0
+var float equity = initial
+var float peak = initial
+var float maxDD = 0
+var array<int> qty = array.new_int(2, 0)
+var array<float> basis = array.new_float(2, 0.0)
+var array<string> dates = array.new_string()
+var array<string> assets = array.new_string()
+var array<string> sides = array.new_string()
+var array<int> units = array.new_int()
+var array<float> prices = array.new_float()
+var array<float> costs = array.new_float()
+var array<float> profits = array.new_float()
+var int incumbent = -1
+var int transactions = 0
+var int firstActive = na
+var int lastConfirmed = na
+var float targetWeight = 0
+var string decision = "Čekam povijest"
+var bool started = false
+bool buyEvent = false
+bool sellEvent = false
+bool monthChange = not na(time[1]) and (month(time) != month(time[1]) or year(time) != year(time[1]))
+bool valid = not na(gt) and not na(st) and gt == time and st == time and go > 0 and so > 0 and gc > 0 and sc > 0
+bool ready = not na(gm) and not na(sm) and not na(ga) and not na(sa) and not na(gv) and not na(sv)
+bool active = time >= startDate
+// Fail closed instead of forward-filling missing prices and silently skipping trades.
+if barstate.isconfirmed and active and not valid
+    runtime.error("Nedostaju usklađeni dnevni podaci PHAU/PHAG. Simulacija zaustavljena.")
+if barstate.isconfirmed and valid
+    lastConfirmed := time
+    if monthChange and ready
+        bool gOK = gp > ga and gm > 0
+        bool sOK = sp > sa and sm > 0
+        int best = gOK and sOK ? (gm >= sm ? 0 : 1) : gOK ? 0 : sOK ? 1 : -1
+        bool oldOK = incumbent == 0 ? gOK : incumbent == 1 ? sOK : false
+        float bestMomentum = best == 0 ? gm : sm
+        float oldMomentum = incumbent == 0 ? gm : sm
+        if best == -1
+            incumbent := -1
+        else if not oldOK or bestMomentum - oldMomentum > 0.02
+            incumbent := best
+        float selectedVol = incumbent == 0 ? gv : sv
+        targetWeight := incumbent != -1 and selectedVol > 0 ? math.min(1.0, 0.10 / selectedVol) : 0
+        decision := incumbent == 0 ? "ZLATO" : incumbent == 1 ? "SREBRO" : "GOTOVINA"
+    if active and ready
+        if not started
+            started := true
+            firstActive := time
+        if monthChange
+            float openingEquity = cash + array.get(qty, 0) * go + array.get(qty, 1) * so
+            array<float> opens = array.from(go, so)
+            array<int> desired = array.from(incumbent == 0 ? int(math.floor(targetWeight * openingEquity / go)) : 0, incumbent == 1 ? int(math.floor(targetWeight * openingEquity / so)) : 0)
+            // Sell before buying; preserve average cost including entry costs.
+            for pass = 0 to 1
+                for asset = 0 to 1
+                    int held = array.get(qty, asset)
+                    int wanted = array.get(desired, asset)
+                    float price = array.get(opens, asset)
+                    bool isBuy = pass == 1
+                    int q = isBuy ? math.max(0, wanted - held) : math.max(0, held - wanted)
+                    if isBuy
+                        q := math.min(q, int(math.floor(math.max(0, cash) / price)))
+                        while q > 0 and f_buy_cost(q, price) > cash + 0.00000001
+                            q -= 1
+                    if q > 0
+                        float gross = q * price
+                        float fee = f_fee(gross)
+                        float slip = gross * friction
+                        float pnl = na
+                        if isBuy
+                            cash -= gross + fee + slip
+                            array.set(qty, asset, held + q)
+                            array.set(basis, asset, array.get(basis, asset) + gross + fee + slip)
+                            buyEvent := true
+                        else
+                            float allocated = array.get(basis, asset) * q / held
+                            cash += gross - fee - slip
+                            pnl := gross - fee - slip - allocated
+                            realized += pnl
+                            array.set(qty, asset, held - q)
+                            array.set(basis, asset, array.get(basis, asset) - allocated)
+                            sellEvent := true
+                        totalFees += fee
+                        totalSlip += slip
+                        transactions += 1
+                        string name = asset == 0 ? "PHAU" : "PHAG"
+                        string side = isBuy ? "SIM KUPNJA" : "SIM PRODAJA"
+                        array.unshift(dates, str.format_time(time, "dd.MM.yy", "Europe/Amsterdam"))
+                        array.unshift(assets, name)
+                        array.unshift(sides, side)
+                        array.unshift(units, q)
+                        array.unshift(prices, price)
+                        array.unshift(costs, fee + slip)
+                        array.unshift(profits, pnl)
+                        if array.size(dates) > 12
+                            array.pop(dates)
+                            array.pop(assets)
+                            array.pop(sides)
+                            array.pop(units)
+                            array.pop(prices)
+                            array.pop(costs)
+                            array.pop(profits)
+                        if showLabels
+                            label.new(bar_index, openingEquity, side + " " + name + " ×" + str.tostring(q) + "\n" + f_money(price) + " | trošak " + f_money(fee + slip), style=isBuy ? label.style_label_up : label.style_label_down, color=isBuy ? color.new(color.teal, 10) : color.new(color.orange, 10), textcolor=color.white, size=size.tiny)
+        if cash < -0.000001
+            runtime.error("Negativna gotovina — blokada simulatora.")
+        equity := cash + array.get(qty, 0) * gc + array.get(qty, 1) * sc
+        peak := math.max(peak, equity)
+        maxDD := math.max(maxDD, 1 - equity / peak)
+float unrealized = equity - cash - array.sum(basis)
+plot(started ? equity : na, "Virtualni račun EUR", color=color.teal, linewidth=2)
+plot(started ? cash : na, "Gotovina EUR", color=color.gray)
+hline(initial, "Početni kapital", color=color.new(color.gray, 50))
+plot(started ? equity - initial : na, "Neto dobit gubitak EUR", display=display.data_window)
+plot(realized, "Realizirano EUR", display=display.data_window)
+plot(unrealized, "Nerealizirano EUR", display=display.data_window)
+plot(totalFees, "Provizije EUR", display=display.data_window)
+plot(totalSlip, "Odstupanje EUR", display=display.data_window)
+plot(array.get(qty, 0), "PHAU jedinice", display=display.data_window)
+plot(array.get(qty, 1), "PHAG jedinice", display=display.data_window)
+plot(buyEvent ? 1 : 0, "SIM kupnja događaj", display=display.data_window)
+plot(sellEvent ? 1 : 0, "SIM prodaja događaj", display=display.data_window)
+alertcondition(buyEvent, "ROTATE simulirana kupnja", "ROTATE SIM: zabilježena virtualna kupnja. Nije brokerski nalog. Provjeri tablicu.")
+alertcondition(sellEvent, "ROTATE simulirana prodaja", "ROTATE SIM: zabilježena virtualna prodaja. Nije brokerski nalog. Provjeri tablicu.")
+var table panel = table.new(position.top_right, 2, 14, bgcolor=color.new(color.black, 12), border_width=1)
+var table ledger = table.new(position.bottom_left, 7, 13, bgcolor=color.new(color.black, 12), border_width=1)
+if barstate.islast
+    array<string> keys = array.from("ROTATE 500 SIM", "Status", "Virtualna vrijednost", "Gotovina", "Neto dobit/gubitak", "Realizirano / otvoreno", "Provizije / odstupanje", "PHAU / PHAG jedinice", "Model / ciljni udio", "Najveći dnevni pad", "Simulirane transakcije", "Stvarni početak", "Zadnja obrađena sesija", "Izvršenje / zaštita")
+    array<string> values = array.from("Zajednički račun EUR", "ISTRAŽIVANJE — bez naloga", f_money(equity), f_money(cash), f_money(equity - initial), f_money(realized) + " / " + f_money(unrealized), f_money(totalFees) + " / " + f_money(totalSlip), str.tostring(array.get(qty, 0)) + " / " + str.tostring(array.get(qty, 1)), decision + " / " + str.tostring(targetWeight * 100, "#.0") + "%", str.tostring(maxDD * 100, "#.00") + "%", str.tostring(transactions), na(firstActive) ? "Nema 200 sesija povijesti" : str.format_time(firstActive, "dd.MM.yyyy", "Europe/Amsterdam"), na(lastConfirmed) ? "Čekam podatke" : str.format_time(lastConfirmed, "dd.MM.yyyy", "Europe/Amsterdam"), "Mjesečno; nema stop-lossa")
+    for row = 0 to 13
+        table.cell(panel, 0, row, array.get(keys, row), text_color=color.white, text_size=size.small)
+        table.cell(panel, 1, row, array.get(values, row), text_color=row == 4 ? (equity >= initial ? color.lime : color.orange) : color.white, text_size=size.small)
+    array<string> headers = array.from("Datum", "Metal", "Simulacija", "Kom.", "Ref. EUR", "Trošak EUR", "Real. PnL EUR")
+    for col = 0 to 6
+        table.cell(ledger, col, 0, array.get(headers, col), text_color=color.white, bgcolor=color.new(color.teal, 50), text_size=size.tiny)
+    if array.size(dates) > 0
+        for row = 0 to array.size(dates) - 1
+            array<string> cells = array.from(array.get(dates, row), array.get(assets, row), array.get(sides, row), str.tostring(array.get(units, row)), str.tostring(array.get(prices, row), "#.000"), str.tostring(array.get(costs, row), "#.00"), na(array.get(profits, row)) ? "—" : str.tostring(array.get(profits, row), "#.00"))
+            for col = 0 to 6
+                table.cell(ledger, col, row + 1, array.get(cells, col), text_color=color.white, text_size=size.tiny)

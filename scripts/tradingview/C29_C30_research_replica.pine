@@ -1,0 +1,59 @@
+//@version=6
+// Research comparison only. No alerts or brokerage connection.
+// Guard fill callbacks: initial stop uses fill + prior ATR, never entry-bar high.
+// Native TradingView OHLC broker emulator is not identical to the Python engine.
+strategy("C13C research · BASE / C29 / C30", overlay=true, initial_capital=10000,
+ default_qty_type=strategy.fixed, default_qty_value=1, pyramiding=0,
+ commission_type=strategy.commission.percent, commission_value=0.025, slippage=1,
+ calc_on_order_fills=true, calc_on_every_tick=false, process_orders_on_close=false,
+ margin_long=100, margin_short=100)
+mode = input.string("BASE", "Hipoteza", options=["BASE", "C29_ATR_TRAIL", "C30_GAP_SHOCK"])
+startTime = input.time(timestamp("01 Jan 2022 00:00 +0000"), "Pocetak")
+endTime = input.time(timestamp("09 Oct 2026 00:00 +0000"), "Kraj (iskljuciv)")
+ma = ta.sma(close, 200)
+atr = ta.atr(20)
+gapShock = open - close[1] <= -atr[1]
+varip float peak = na
+varip float stopLevel = na
+varip int seenEntries = 0
+varip int seenClosed = 0
+varip float cutoffEquity = na
+varip bool ended = false
+newEntry = strategy.opentrades + strategy.closedtrades > seenEntries
+newExit = strategy.closedtrades > seenClosed
+// Requested starts Jan1 (Saturday) and Dec1 (Thursday) allow preceding close.
+window = time_close >= startTime - 86400000 and time < endTime
+if newEntry
+    seenEntries := strategy.opentrades + strategy.closedtrades
+    // Match local stop anchor including its modeled commission, without charging it twice.
+    peak := (strategy.position_avg_price - syminfo.mintick) * 1.00025 + syminfo.mintick
+    stopLevel := mode == "C29_ATR_TRAIL" ? math.max(0.01, math.round_to_mintick(peak - 3 * atr[1])) : math.round_to_mintick(peak * 0.90)
+    strategy.exit("protect", "research", stop=stopLevel)
+else if newExit
+    seenClosed := strategy.closedtrades
+    peak := na
+    stopLevel := na
+else if barstate.isconfirmed and not ended
+    if window
+        if strategy.position_size > 0
+            peak := math.max(peak, high)
+            candidate = mode == "C29_ATR_TRAIL" ? math.max(0.01, math.round_to_mintick(peak - 3 * atr)) : math.round_to_mintick(peak * 0.90)
+            stopLevel := math.max(stopLevel, candidate)
+            strategy.exit("protect", "research", stop=stopLevel)
+        // Avoid an entry scheduled into the next day beyond the fixed cutoff.
+        canEnter = time_close < endTime - 86400000 and timeframe.isdaily and timeframe.multiplier == 1
+        signal = close > ma and close / close[5] - 1 <= -0.05
+        if strategy.position_size == 0 and canEnter and signal and not (mode == "C30_GAP_SHOCK" and (na(atr[1]) or gapShock))
+            strategy.entry("research", strategy.long, qty=1)
+        cutoffEquity := strategy.equity
+        if time_close >= endTime - 86400000
+            strategy.cancel_all()
+            ended := true
+    else if time >= endTime
+        strategy.cancel_all()
+        ended := true
+plot(ma, "SMA200", color=color.orange)
+plot(strategy.position_size > 0 ? stopLevel : na, "Stop", color=color.red, style=plot.style_linebr)
+plot(cutoffEquity, "Equity at completed cutoff USD", display=display.data_window)
+var table info = table.new(position.top_right, 1, 1)
+table.cell(info, 0, 0, mode + " | 1 share / 10000 USD\nCutoff equity: " + str.tostring(cutoffEquity, "#.##") + " USD\nResearch only. No approval.\nNative tester open PnL can include current quote.", bgcolor=color.new(color.orange, 20), text_color=color.black)

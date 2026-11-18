@@ -1,0 +1,97 @@
+//@version=6
+// MASTER_W3_MOMENTUM_TABLE  (lab id: SWING_W3_MOM_RANK_WEEKLY)  -  INDICATOR, not a strategy. Research only, no orders.
+// WHY AN INDICATOR: W3 ranks several symbols against each other. A TradingView strategy trades one chart symbol
+//   and cannot rank across symbols and simulate all their trades, so there is no honest Strategy Tester for W3.
+//   This table is how W3 is used in practice: once a week you read the ranking.
+// RULE (lab, frozen): at the Friday close rank the watchlist by the 20-day return. Buy candidate = top third
+//   (rounded up, at least 1) AND close > SMA50. A name already held stays while it is in the top half (rounded up).
+//   The buy would happen at Monday's open (the next open).
+// LIMITATIONS (read them):
+//   1. The lab ranks inside a fixed peer group (e.g. memory = MU, WDC, STX). The ranking depends on WHICH symbols
+//      you put in the list, so results differ if your list differs from the lab group.
+//   2. Max 20 symbols. Symbols that do not exist or have no data are skipped.
+//   3. The rule is decided at the Friday close only. The table updates every day for information; act on Fridays.
+//   4. Data differ from the lab files (feed, adjustments), so a rank near a boundary can flip.
+//   5. There is no trade simulation and no equity curve here.
+// VERSION: 2026-10-14 v1
+// COMPILED OK 2026-10-14; behaviour not yet compared trade by trade with the Python engine
+indicator("MASTER_W3_MOMENTUM_TABLE", overlay=true, max_labels_count=50)
+
+symList   = input.string("NASDAQ:MU,NASDAQ:WDC,NASDAQ:STX", "Popis simbola (odvojeni zarezom, najviše 20)", tooltip="Primjer: NASDAQ:MU,NASDAQ:WDC,NASDAQ:STX. Što je popis različit od laboratorijske skupine, rangiranje se razlikuje.")
+retN      = input.int(20, "Povrat: broj dana", minval=1)
+smaN      = input.int(50, "Prosjek cijene: broj dana (SMA)", minval=1)
+topFrac   = input.float(1.0 / 3.0, "Gornja trećina (udio)", minval=0.05, maxval=1.0)
+keepFrac  = input.float(0.5, "Zadrži dok je u gornjoj polovici (udio)", minval=0.05, maxval=1.0)
+useClosed = input.bool(true, "Koristi zadnji ZAVRŠENI dan (preporučeno)")
+
+off  = useClosed ? 1 : 0
+
+// plain-loop SMA (no ta.* call) so it can be evaluated inside the per-symbol request.security loop
+f_sma(len, o) =>
+    float tot = 0.0
+    for j = 0 to len - 1
+        tot += close[o + j]
+    tot / len
+
+syms = str.split(symList, ",")
+n    = math.min(array.size(syms), 20)
+
+var rets  = array.new_float(20, na)
+var aboves = array.new_bool(20, false)
+var names = array.new_string(20, "")
+
+for i = 0 to n - 1
+    s = str.trim(array.get(syms, i))
+    [c0, cN, sm] = request.security(s, "D", [close[off], close[off + retN], f_sma(smaN, off)], ignore_invalid_symbol = true)
+    array.set(names, i, s)
+    array.set(rets, i, na(c0) or na(cN) or cN == 0 ? na : c0 / cN - 1)
+    array.set(aboves, i, not na(c0) and not na(sm) and c0 > sm)
+
+if barstate.islast
+    valid = 0
+    for i = 0 to n - 1
+        if not na(array.get(rets, i))
+            valid += 1
+    kTop  = math.max(1, math.ceil(valid * topFrac - 1e-9))
+    kKeep = math.max(1, math.ceil(valid * keepFrac - 1e-9))
+    var tbl = table.new(position.top_right, 6, 22, border_width=1)
+    table.clear(tbl, 0, 0, 5, 21)
+    hdr = color.new(color.gray, 20)
+    table.cell(tbl, 0, 0, "ID: SWING_W3_MOM_RANK_WEEKLY", text_color=color.white, bgcolor=hdr)
+    table.cell(tbl, 1, 0, "Istraživanje, nije savjet. Nema naloga.", text_color=color.white, bgcolor=hdr)
+    table.cell(tbl, 2, 0, dayofweek(time) == dayofweek.friday ? "Zadnja svijeća: petak" : "Odluka samo petkom", text_color=color.white, bgcolor=hdr)
+    table.cell(tbl, 3, 0, "", bgcolor=hdr)
+    table.cell(tbl, 4, 0, "", bgcolor=hdr)
+    table.cell(tbl, 5, 0, "", bgcolor=hdr)
+    heads = array.from("#", "Simbol", "Povrat " + str.tostring(retN) + "d", "Iznad SMA" + str.tostring(smaN), "Rang", "Status")
+    for c = 0 to 5
+        table.cell(tbl, c, 1, array.get(heads, c), text_color=color.white, bgcolor=color.new(color.gray, 40))
+    for i = 0 to n - 1
+        r = array.get(rets, i)
+        row = i + 2
+        table.cell(tbl, 0, row, str.tostring(i + 1))
+        table.cell(tbl, 1, row, array.get(names, i))
+        if na(r)
+            table.cell(tbl, 2, row, "n/a")
+            table.cell(tbl, 3, row, "-")
+            table.cell(tbl, 4, row, "-")
+            table.cell(tbl, 5, row, "nema podataka")
+        else
+            rank = 1
+            for j = 0 to n - 1
+                rj = array.get(rets, j)
+                if not na(rj) and rj > r
+                    rank += 1
+            ab = array.get(aboves, i)
+            buyCand = rank <= kTop and ab
+            keepZone = rank <= kKeep
+            status = buyCand ? "KUPOVNI KANDIDAT (gornja trećina i iznad SMA)" : (rank <= kTop ? "gornja trećina, ali ispod SMA: ne" : (keepZone ? "gornja polovica: drži ako već držiš" : "izvan polovice: izlaz ako držiš"))
+            bg = buyCand ? color.new(color.green, 60) : (keepZone ? color.new(color.yellow, 70) : color.new(color.red, 80))
+            table.cell(tbl, 2, row, str.tostring(r * 100, "#.0") + " %", bgcolor=bg)
+            table.cell(tbl, 3, row, ab ? "da" : "ne", bgcolor=bg)
+            table.cell(tbl, 4, row, str.tostring(rank) + " / " + str.tostring(valid), bgcolor=bg)
+            table.cell(tbl, 5, row, status, bgcolor=bg, text_halign=text.align_left)
+
+// informational only: fires on the weekly decision day when the chart symbol is a buy candidate is NOT possible
+// across symbols without a strategy; this alert just reminds you to read the table on Fridays.
+alertcondition(dayofweek == dayofweek.friday and barstate.isconfirmed, "W3 petak: pogledaj tablicu", "W3: petak je, pogledaj tablicu rangiranja. Samo podsjetnik, nema naloga.")

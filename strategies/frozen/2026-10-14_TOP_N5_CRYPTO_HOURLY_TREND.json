@@ -1,0 +1,54 @@
+{
+  "code_file": "lab/top10/strategies/top_n5_crypto_hourly_trend.py",
+  "code_sha256": "43714039c987dbe6feeb49dec92596f796f57f3f2618cb44f4efc362b5dff270",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "BTCUSDT": "022b81a0e7a9a8695f76fbb25fa664f7f82456981a5132a6b3c1fb9648173048",
+    "ETHUSDT": "00ca763608fd14e435fa4ad68381ed66d1e63433749474a83290fb7ba3792265",
+    "SOLUSDT": "f6dfc1d2d571286e90e70d43ba093e7974dfef3ea0120b1bf184a74455f700ed"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "Crypto trends persist for hours to days because flows are herd-like and the market never closes. A fast hourly EMA above a slow one captures that drift, but it fails in two regimes: calm chop (no trend to ride, costs eat the signal) and panic spikes (gaps and reversals). Trading only when one-week realized volatility sits in the middle band of its own trailing 90-day distribution should keep the trend edge and skip the regimes where it historically breaks.",
+  "id": "TOP_N5_CRYPTO_HOURLY_TREND",
+  "params": {
+    "fast": 24,
+    "q_high": 0.75,
+    "q_low": 0.25,
+    "regime_window": 2160,
+    "slow": 96,
+    "vol_window": 168
+  },
+  "rules": [
+    "Every hourly bar close, per asset: fast EMA (24 bars) above slow EMA (96 bars) means an up-trend.",
+    "Realized volatility = standard deviation of hourly log returns over the last 168 bars (one week).",
+    "Regime filter: volatility must lie between its trailing 25th and 75th percentile over the last 2160 bars (90 days); calm chop and panic spikes are skipped.",
+    "Hold the asset (weight 1/3 of capital per asset, unused slots stay in cash) while up-trend AND middle-band volatility are both true; otherwise flat.",
+    "Decide at the bar close, fill at the next bar open, long-only, no leverage. Periods are hourly bars (24/7), not days."
+  ],
+  "split_kind": "equity",
+  "splits": {
+    "HO": [
+      "2024-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "timeframe": "1h",
+  "universe": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT"
+  ]
+}

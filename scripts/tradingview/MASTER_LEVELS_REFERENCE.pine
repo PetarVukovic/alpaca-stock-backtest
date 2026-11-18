@@ -1,0 +1,108 @@
+//@version=6
+// MASTER_LEVELS_REFERENCE  -  orijentir za stop i cilj, ne signal (a guide for stop and target, NOT a signal).
+// Research only, no orders. INDICATOR.
+// HONEST WARNING: the lab's placebo test (reports/research/AICHAIN_20261014/swing/PLACEBO.md) found that confirmed
+//   support/resistance levels did NOT beat random levels: they bounce price no more often than fake lines. So these
+//   lines are a way to place a stop or a target sensibly and to see structure, never a reason to buy.
+// WHAT IT DRAWS:
+//   - Confirmed pivot highs/lows: a high (low) strictly above (below) the k bars on each side, known only k bars later.
+//   - Nearby pivots are merged into one LEVEL when they lie within max(1 percent, 0.5 x ATR14) of the running mean
+//     of the cluster (same tolerance idea as the lab). The label shows the number of touches (pivots in the level).
+//     SIMPLIFICATION: the lab also weights pivots by recency (half-life 250 bars); here every pivot counts 1.
+//   - ATR band: close +- atrMult x ATR14 (a feel for normal daily movement).
+//   - SMA50 and SMA200.
+//   - STOP-UNDER-LEVEL HELPER: nearest level below the close, minus stopAtr x ATR14 = a suggested stop price.
+//     Example on 1.000 EUR: close 100, level 94, ATR 4, stopAtr 0.5 -> stop 92; a fall to 92 loses about 8 percent = 80 EUR.
+// VERSION: 2026-10-14 v1
+// COMPILED OK 2026-10-14; behaviour not yet compared trade by trade with the Python engine
+indicator("MASTER_LEVELS_REFERENCE", overlay=true, max_lines_count=100, max_labels_count=100)
+
+k        = input.int(5, "Okret: broj svijeća sa svake strane", minval=1)
+lookback = input.int(500, "Koliko svijeća unatrag gledamo okrete", minval=50, maxval=1000)
+clusterP = input.float(1.0, "Spajanje okreta: % cijene", minval=0.1, step=0.1)
+clusterA = input.float(0.5, "Spajanje okreta: ATR udio", minval=0.1, step=0.1)
+minTouch = input.int(2, "Prikaži razine s najmanje N dodira", minval=1)
+atrMult  = input.float(1.5, "ATR pojas: broj ATR-ova oko zatvaranja", minval=0.1, step=0.1)
+stopAtr  = input.float(0.5, "Pomoć za stop: ATR ispod najbliže razine", minval=0.0, step=0.1)
+showBand = input.bool(true, "Prikaži ATR pojas")
+showMAs  = input.bool(true, "Prikaži SMA50 i SMA200")
+
+atr14 = ta.atr(14)
+sma50 = ta.sma(close, 50)
+sma200 = ta.sma(close, 200)
+
+// confirmed pivots (strict, k bars each side), stored with their bar index
+cand_h = high[k]
+cand_l = low[k]
+hiRight = ta.highest(high, k)
+loRight = ta.lowest(low, k)
+isPH = bar_index >= 2 * k and cand_h > hiRight[k + 1] and cand_h > hiRight
+isPL = bar_index >= 2 * k and cand_l < loRight[k + 1] and cand_l < loRight
+var pPrice = array.new_float()
+var pBar   = array.new_int()
+if isPH
+    array.push(pPrice, cand_h)
+    array.push(pBar, bar_index - k)
+if isPL
+    array.push(pPrice, cand_l)
+    array.push(pBar, bar_index - k)
+
+var line[] lines = array.new_line()
+var label[] labels = array.new_label()
+var float stopHelp = na
+var float nearBelow = na
+
+if barstate.islast
+    for l in lines
+        line.delete(l)
+    for lb in labels
+        label.delete(lb)
+    array.clear(lines)
+    array.clear(labels)
+    // collect pivots inside the look-back window
+    prices = array.new_float()
+    for i = 0 to array.size(pPrice) - 1
+        if array.get(pBar, i) >= bar_index - lookback
+            array.push(prices, array.get(pPrice, i))
+    nearBelow := na
+    if array.size(prices) > 0
+        sorted = array.copy(prices)
+        array.sort(sorted, order.ascending)
+        tol = math.max(clusterP / 100 * close, clusterA * nz(atr14))
+        // walk the sorted prices and merge neighbours into clusters (running mean, as in the lab)
+        sum = array.get(sorted, 0)
+        cnt = 1
+        for i = 1 to array.size(sorted)
+            closeCluster = i == array.size(sorted)
+            if not closeCluster
+                p = array.get(sorted, i)
+                if p - sum / cnt <= tol
+                    sum += p
+                    cnt += 1
+                else
+                    closeCluster := true
+            if closeCluster
+                lvl = sum / cnt
+                if cnt >= minTouch
+                    isSup = lvl < close
+                    col = isSup ? color.new(color.green, 20) : color.new(color.red, 20)
+                    array.push(lines, line.new(bar_index - lookback, lvl, bar_index + 5, lvl, color=col, width=1 + math.min(cnt, 4) - 1))
+                    array.push(labels, label.new(bar_index + 5, lvl, str.tostring(lvl, format.mintick) + "  x" + str.tostring(cnt), style=label.style_label_left, color=color.new(col, 70), textcolor=color.white, size=size.small))
+                if lvl < close and cnt >= minTouch
+                    nearBelow := na(nearBelow) ? lvl : math.max(nearBelow, lvl)
+                if i < array.size(sorted)
+                    sum := array.get(sorted, i)
+                    cnt := 1
+    stopHelp := na(nearBelow) ? na : nearBelow - stopAtr * nz(atr14)
+
+plot(showBand ? close + atrMult * atr14 : na, "ATR pojas gore", color=color.new(color.gray, 60), style=plot.style_linebr)
+plot(showBand ? close - atrMult * atr14 : na, "ATR pojas dolje", color=color.new(color.gray, 60), style=plot.style_linebr)
+plot(showMAs ? sma50 : na, "SMA50", color=color.new(color.blue, 0))
+plot(showMAs ? sma200 : na, "SMA200", color=color.new(color.purple, 0))
+
+var tbl = table.new(position.top_right, 1, 4)
+if barstate.islast
+    table.cell(tbl, 0, 0, "Orijentir za stop i cilj, ne signal", text_color=color.white, bgcolor=color.new(color.red, 30))
+    table.cell(tbl, 0, 1, "Placebo test: razine ne pobjeđuju slučajnost", text_color=color.white, bgcolor=color.new(color.gray, 20))
+    table.cell(tbl, 0, 2, "Najbliža razina ispod: " + (na(nearBelow) ? "nema" : str.tostring(nearBelow, format.mintick)), text_color=color.white, bgcolor=color.new(color.gray, 20))
+    table.cell(tbl, 0, 3, "Predloženi stop: " + (na(stopHelp) ? "nema" : str.tostring(stopHelp, format.mintick)) + "  (ATR14 " + str.tostring(atr14, format.mintick) + ")", text_color=color.white, bgcolor=color.new(color.gray, 20))

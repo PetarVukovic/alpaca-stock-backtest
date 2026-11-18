@@ -1,0 +1,63 @@
+//@version=6
+// MASTER_W1_C13C  (lab id: SWING_W1_C13C_ORIG)  -  research only, not advice, no orders are ever sent.
+// RULE (frozen, do not tune):
+//   1. Entry signal at the CLOSE of a daily bar: close > SMA200 AND the 5-day change <= -5 percent
+//      (a "dip in an uptrend"). One position at a time, long only, no leverage.
+//   2. The buy fills at the NEXT bar's open (process_orders_on_close=false).
+//   3. Exit: trailing stop at 90 percent of the known peak (highest high since entry; the peak starts at the
+//      entry price). A new peak only raises the stop from the NEXT bar; the stop is never lowered.
+//      A gap below the stop fills at the open.
+// COSTS: 0.025 percent per side (2.5 bps), equal to the lab's stock cost. No slippage, FX, tax, minimum fee.
+// KNOWN DIFFERENCE vs the Python engine: the stop is not active on the entry bar itself (Pine cannot know the
+//   fill price in advance); Python checks 90 percent of the entry price on the entry bar too.
+// ALERTS: TradingView ignores alertcondition() inside strategies, so information-only alert() calls are used.
+//   When you create an alert choose 'Any alert() function call'. Never pick order-fill alerts or webhooks.
+// INFO TABLE: in a strategy the table is refreshed only on a confirmed (closed) bar.
+// VERSION: 2026-10-14 v1
+// COMPILED OK 2026-10-14; behaviour not yet compared trade by trade with the Python engine
+strategy("MASTER_W1_C13C", overlay=true, initial_capital=1000,
+     default_qty_type=strategy.percent_of_equity, default_qty_value=100,
+     commission_type=strategy.commission.percent, commission_value=0.025,
+     process_orders_on_close=false, calc_on_every_tick=false, pyramiding=0)
+
+// ---- inputs (frozen defaults) ----
+smaLen   = input.int(200, "Prosjek cijene: broj dana (SMA)", minval=1)
+dipDays  = input.int(5, "Pad: gledamo zadnjih N dana", minval=1)
+dipPct   = input.float(5.0, "Pad: najmanje % pada", minval=0.1, step=0.5)
+trailPct = input.float(10.0, "Pomični stop: % ispod vrha", minval=0.5, step=0.5)
+startT   = input.time(timestamp("2023-01-01T00:00:00"), "Trguj od (AI era; samo prozor testa)")
+
+// ---- rule ----
+sma    = ta.sma(close, smaLen)
+chg    = close / close[dipDays] - 1
+inWin  = time >= startT
+flat   = strategy.position_size == 0
+signal = barstate.isconfirmed and inWin and flat and close > sma and chg <= -dipPct / 100
+
+if signal
+    strategy.entry("W1", strategy.long)
+
+// peak and stop are updated at the close of every bar with an open position; the stop applies from the next bar
+var float peak = na
+var float stopLvl = na
+if strategy.position_size > 0
+    peak := na(peak) ? math.max(strategy.position_avg_price, high) : math.max(peak, high)
+    stopLvl := math.max(nz(stopLvl), math.round_to_mintick(peak * (1 - trailPct / 100)))
+    strategy.exit("W1 stop", "W1", stop=stopLvl)
+else
+    peak := na
+    stopLvl := na
+
+// ---- visuals + info table (they never change a trade) ----
+plot(sma, "SMA200", color=color.new(color.blue, 0))
+plot(strategy.position_size > 0 ? stopLvl : na, "Pomični stop", color=color.red, style=plot.style_linebr)
+plotshape(signal, "Signal za kupnju (iduće otvaranje)", shape.triangleup, location.belowbar, color.green, size=size.small)
+var tbl = table.new(position.top_right, 1, 3)
+if barstate.islast
+    table.cell(tbl, 0, 0, "ID: SWING_W1_C13C_ORIG", text_color=color.white, bgcolor=color.new(color.gray, 20))
+    table.cell(tbl, 0, 1, "Istraživanje, nije savjet. Nema naloga.", text_color=color.white, bgcolor=color.new(color.gray, 20))
+    table.cell(tbl, 0, 2, strategy.position_size > 0 ? "U poziciji, stop " + str.tostring(stopLvl, format.mintick) : "Izvan pozicije", text_color=color.white, bgcolor=color.new(color.gray, 20))
+
+// ---- informational alerts (no order messages) ----
+if signal
+    alert("W1_C13C: dnevno zatvaranje ispunjava pravilo. Kupnja bi bila iduće otvaranje. Samo informacija.", alert.freq_once_per_bar_close)

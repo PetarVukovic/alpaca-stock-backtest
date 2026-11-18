@@ -1,0 +1,12 @@
+{
+  "parent": "C34_RMBS_SIMO_20261012",
+  "symbol": "SIMO",
+  "start": "2026-03-02",
+  "end": "2026-10-09",
+  "capital_eur": 600,
+  "sizes": [
+    "fractional",
+    "whole"
+  ],
+  "rules": "unchanged C34 engine, 95% allocation, same fees and FX, start flat; previous-session signal eligible"
+}

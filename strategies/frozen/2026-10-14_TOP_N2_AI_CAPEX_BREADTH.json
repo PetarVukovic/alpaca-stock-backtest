@@ -1,0 +1,62 @@
+{
+  "code_file": "lab/top10/strategies/top_n2_ai_capex_breadth.py",
+  "code_sha256": "a827748f697fb677058c2d05ca7927b97b10d7280c48b440c9ab70a366fa3e35",
+  "costs_rt_bps": {
+    "crypto": 20.0,
+    "equity": 5.0,
+    "fx": 2.0
+  },
+  "data_sha256": {
+    "AMZN": "0cf2b30f19c88922258de1ea1110c61e8836f51c03fdedce7d0a34f276283378",
+    "GOOGL": "a7ef5d782a8470cf341290de2665af059da86e14e8bd42246b2a03eb436bdbd4",
+    "META": "5553947093daed87ce9af635026208809233669b71389e63706728e41ab278a3",
+    "MSFT": "ab5be7fefddc82a62dc8f879d199feb9e4a4890dca2e697769b2440b2ce055a7",
+    "MU": "fdedb4cb163bfc889b7d9e3658caad81407fe7624211ecbe009ee2b2150625c3",
+    "RMBS": "de78c44ca0aa6dcab9ee5c32b3f36fb2b3007e16db79ffc11a146c20198042b7",
+    "SIMO": "80a6ac6c835a7d8027ec663e6f9f3c8d4ae7bd3d56c82e85eb4e992b17dd18b9",
+    "STX": "d1614d1b5a4108f76688857f38ee60ecfc0db093fb00d9eecaa5309aa260065b",
+    "WDC": "4d948b7455e383dcb36312907d9a5bbde2b94af221b3d6bfd226b48d40fd36af"
+  },
+  "execution": "decide at close, fill at next open, long-only, no leverage",
+  "hypothesis": "Hyperscaler capex is the largest demand source for memory and storage. When most of the four big cloud spenders (MSFT GOOGL AMZN META) trade above their medium-term trend, the market is pricing continued AI spending, which should lift expectations for memory and storage demand. Holding the memory names that are individually in an uptrend only while this breadth is high ties the exposure to the demand driver and keeps the book in cash when capex sentiment breaks.",
+  "id": "TOP_N2_AI_CAPEX_BREADTH",
+  "params": {
+    "min_on": 3,
+    "trend": 100
+  },
+  "rules": [
+    "At each daily close, a hyperscaler (MSFT GOOGL AMZN META) is 'on' when its close is above its 100-day simple moving average.",
+    "Breadth gate is open when at least 3 of the 4 hyperscalers are on; hyperscalers are signal-only and never held.",
+    "When the gate is open, each memory name (MU WDC STX RMBS SIMO) whose own close is above its own 100-day SMA gets a weight of 1/5 (equal weight per name slot).",
+    "Gate closed, or a name below its trend, or insufficient history: that slot stays in cash. Long-only, no leverage, sum of weights <= 1.",
+    "Decide at the close, fill at the next open; no stops, no minimum holding period."
+  ],
+  "split_kind": "equity",
+  "splits": {
+    "HO": [
+      "2024-01-01",
+      "2026-10-09"
+    ],
+    "IS": [
+      "2016-01-01",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ]
+  },
+  "status": "research only; not a lab Critic PASS",
+  "timeframe": "1d",
+  "universe": [
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "META",
+    "MU",
+    "WDC",
+    "STX",
+    "RMBS",
+    "SIMO"
+  ]
+}

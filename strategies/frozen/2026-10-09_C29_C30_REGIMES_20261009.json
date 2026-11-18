@@ -1,0 +1,131 @@
+{
+  "study": "C29_C30_REGIMES_20261009",
+  "created_utc": "2026-10-09T19:15:37.103844+00:00",
+  "status": "RESEARCH_ONLY_NO_APPROVAL",
+  "source_freeze": "strategies/frozen/2026-10-05_C13C_TREND_DIP5_TRAIL.json",
+  "source_freeze_sha256": "560cee7d64d929d395a3529d7994a1b43d9c89ff7c76cf1b7ca77f65f9afb428",
+  "baseline_engine_sha256": "96cbc9dca31a5fbc22675ed90f5ac6eb609853008fb05230f89731a75a3f1d8f",
+  "requested_through": "2026-10-08",
+  "cutoff_policy": "Latest common validated complete daily session <=2026-10-08. Never infer missing bars; record actual cutoff before run.",
+  "core": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "expanded": [
+    "MU",
+    "WDC",
+    "STX",
+    "SIMO",
+    "RMBS"
+  ],
+  "single_checks": [
+    "MU",
+    "WDC",
+    "STX",
+    "SIMO",
+    "RMBS",
+    "AMAT",
+    "LRCX",
+    "KLAC",
+    "MRAM",
+    "ACMR"
+  ],
+  "watch_only": [
+    "DRAM",
+    "SKHY",
+    "SNDK"
+  ],
+  "context": [
+    "SPY",
+    "SMH"
+  ],
+  "base_parameters": {
+    "trend": 200,
+    "bars": 5,
+    "dip": 0.05,
+    "trail": 0.1
+  },
+  "variants": {
+    "BASE": {
+      "mode": "baseline",
+      "description": "Original C13C entry and 10 percent trailing exit; benchmark, not newly approved."
+    },
+    "C29_ATR_TRAIL": {
+      "mode": "atr",
+      "atr_period": 20,
+      "atr_multiple": 3.0,
+      "hypothesis": "Volatility clustering makes a fixed percent stop inconsistent across regimes. Scale the exit to recent true range; sustained directional flow may pay for short-lived liquidity demand, without assuming it does.",
+      "rule": "Signal unchanged; ATR is Wilder20 seeded with mean first20 true ranges. Entry stop=max(0.01,roundCent(fill-3*ATR at signal close)). On each surviving complete bar: peak=max(oldPeak,high); next stop=max(oldStop,roundCent(peak-3*ATR current completed bar),0.01). Stop never decreases; daily new high or ATR never affects an earlier same-bar stop.",
+      "why_new": "Exit distance changes; C23 volatility sizing altered quantity, not trailing geometry.",
+      "theory_parameters": "20 sessions roughly one trading month; 3ATR risk buffer is prespecified, not fitted."
+    },
+    "C30_GAP_SHOCK": {
+      "mode": "gap",
+      "atr_period": 20,
+      "gap_multiple": 1.0,
+      "hypothesis": "A downside opening discontinuity may encode adverse information rather than a temporary liquidity dip. Avoid catching that signal-day shock; remaining entry and exit remain unchanged.",
+      "rule": "Reject an otherwise valid signal at completed close t if open[t]-close[t-1] <= -1*ATR20[t-1]. ATR unavailable rejects signal. No future earnings calendar. Keep original10% ratcheting stop.",
+      "why_new": "Observed signal-day gap exclusion; distinct from C23 sector trend, sizing, SMA and C28 reentry.",
+      "theory_parameters": "One prior ATR separates ordinary overnight movement from unusually large gap by local scale; no optimization."
+    }
+  },
+  "capital_eur": [
+    500,
+    600
+  ],
+  "primary_capital_eur": 600,
+  "sizing": "all available cash whole shares, no leverage, no deposits, one position, core priority fixed",
+  "periods": {
+    "IS": [
+      "2016-01-04",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ],
+    "HO_SEEN": [
+      "2024-01-01",
+      "cutoff"
+    ],
+    "SINCE_2022": [
+      "2022-01-01",
+      "cutoff"
+    ],
+    "POST_CHATGPT": [
+      "2022-12-01",
+      "cutoff"
+    ],
+    "ALL": [
+      "2016-01-04",
+      "cutoff"
+    ]
+  },
+  "selection": "No parameter selection. Interest only if WF excess over USD cash>0, WF>=10closed, WF DD at least20% lower than baseline, WF CAGR >= baseline, positive IS and HO-seen excess over cash, WF2x costs positive excess, no top3 concentration. All gate checks remain necessary; no new unseen holdout.",
+  "stresses": {
+    "COST2": {
+      "stress": 2
+    },
+    "COST3": {
+      "stress": 3
+    },
+    "EXIT100BPS": {
+      "extra_exit_bps": 100
+    },
+    "DELAY2": {
+      "entry_delay_sessions": 2
+    }
+  },
+  "sensitivity": "One-at-time \u00b120% trend200,bars5,dip.05,trail.10 for relevant variants; ATR20 and multiplier3 or1 \u00b120%. Diagnostic only, no winning parameter selection. Ledger each diagnostic distinct config for conservative K.",
+  "annual": "Continuous account calendar-year returns from SINCE_2022 curve, not reset each year. 2026 partial.",
+  "benchmarks": "Whole-share equal-weight buyhold + equal sleeves SMA200 entry/exit nextopen + USDcash translated EUR. Same dates/costs/capital. No dividends.",
+  "diagnostics": "SPY/SMH trend at prior completed close; priorATR/close bins <=2%,2-4%,>4%; prior-day gap shock; MU verified past earnings reaction within5completed sessions (incomplete archival coverage explicitly labelled). Descriptive, not causal.",
+  "audit": "Frozen manifest; baseline parity; truncation+futurecorruption3cutoffs; no fills>1% dailyvolume; low/high fill constraints; MC iid+20day blocks>=2000; concentration top3/5/10 closed USD PnL; DSR approximate K and PBO declared3 variants IS/WF only; quote/tick/realfill evidence unavailable means no complete authenticity PASS.",
+  "limitations": [
+    "All preexisting historical periods already seen; cannot promise high profit.",
+    "No tax/dividends/actual broker minimum commissions or FX conversion costs; priceadjusted whole units not historical raw units.",
+    "Original algorithm, app and approved_list unchanged.",
+    "2022 boundary descriptive; ChatGPT release30Nov2022 does not identify cause."
+  ]
+}

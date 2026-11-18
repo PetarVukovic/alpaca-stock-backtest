@@ -1,0 +1,284 @@
+{
+  "id": "C35_METALS_20261013",
+  "frozen_at": "2026-10-13T16:58:37.258630+00:00",
+  "status": "RESEARCH_ONLY_NOT_ELIGIBLE_FOR_APPROVED_LIST",
+  "symbols": [
+    "GLD",
+    "SLV"
+  ],
+  "source": "Alpaca SIP split via project GET-only CLI",
+  "evaluation_start": "2016-10-13",
+  "evaluation_end": "2026-10-12",
+  "warmup_start": "2016-01-01",
+  "splits": {
+    "IS": [
+      "2016-10-13",
+      "2020-12-31"
+    ],
+    "WF": [
+      "2021-01-01",
+      "2023-12-31"
+    ],
+    "HO": [
+      "2024-01-01",
+      "2026-10-12"
+    ]
+  },
+  "cash_interest": 0,
+  "currency": "USD",
+  "fractional_shares": true,
+  "portfolio": "Two independently compounded sleeves, initial 50/50, no periodic rebalance, weights drift. No leverage. Each sleeve limited to own cash. Periods restart capital; full-period diagnostic separate.",
+  "rules": {
+    "MOM252": "At actual month-end completed daily close: close>close.shift(252) means long, else cash. Act next session open. No intraday protective stop; backtest only. Insufficient warmup means remain cash, not synthetic history.",
+    "BREAKOUT55": "Enter next open if completed close > max previous55 closes; exit next open if close<min previous20 closes. No same-bar signal fills, no intraday stop.",
+    "ORB30": "Regular NY session only; first30min high/low. First completed5min close>range high with signal before noon, next5min open. Stop range low, gap fill adverse open, stop may trigger entry bar; risk0.5% sleeve equity capped sleeve cash. One trade/day/symbol. Exit open of final regular5min bar. Incomplete sessions skipped. Earlyclose via session_end."
+  },
+  "friction": "Per side 2.5bps plus $0.01/share; cost multiplier on friction. Fee scenario adds max($1.375,5bps notional) per side. This is scenario, not complete IBKR tariff; external exchange fees excluded.",
+  "selection": "Rank baseline strategies on WF daily net Sharpe descending if return>0, max drawdown<=25%, roundtrips>=10. If none eligible: no winner, top WF Sharpe research candidate only. Save selection before HO execution. No change to winner after HO.",
+  "sensitivity": "Joint parameter scaling .8/1.2: MOM202/302, breakout44/16 and66/24, ORB25/35min due5min granularity. Diagnostic only, not individual parameter robustness proof.",
+  "holdout": "Retrospective fixed-rule research; data downloaded but not used for ranking. HO processed after selection persisted. No universal unseen-data guarantee.",
+  "trial_unit": "one strategy parameter/cost/capital configuration, both symbols jointly; all planned configs logged before execution, including diagnostic runs",
+  "configs": [
+    {
+      "id": "C35_METALS_20261013_MOM252_BASE",
+      "strategy": "MOM252",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_MOM252_COST2",
+      "strategy": "MOM252",
+      "cost_multiplier": 2,
+      "sensitivity": 1,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_MOM252_COST3",
+      "strategy": "MOM252",
+      "cost_multiplier": 3,
+      "sensitivity": 1,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_MOM252_SENS08",
+      "strategy": "MOM252",
+      "cost_multiplier": 1,
+      "sensitivity": 0.8,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_MOM252_SENS12",
+      "strategy": "MOM252",
+      "cost_multiplier": 1,
+      "sensitivity": 1.2,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_MOM252_FEE500",
+      "strategy": "MOM252",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 550.0,
+      "min_fee": 1.375,
+      "commission_bps": 5,
+      "eur_capital_label": 500,
+      "fx": "Constant 1.10 USD/EUR illustrative fee conversion ONLY; not historical EUR performance"
+    },
+    {
+      "id": "C35_METALS_20261013_MOM252_FEE1000",
+      "strategy": "MOM252",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 1100.0,
+      "min_fee": 1.375,
+      "commission_bps": 5,
+      "eur_capital_label": 1000,
+      "fx": "Constant 1.10 USD/EUR illustrative fee conversion ONLY; not historical EUR performance"
+    },
+    {
+      "id": "C35_METALS_20261013_MOM252_FEE2000",
+      "strategy": "MOM252",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 2200.0,
+      "min_fee": 1.375,
+      "commission_bps": 5,
+      "eur_capital_label": 2000,
+      "fx": "Constant 1.10 USD/EUR illustrative fee conversion ONLY; not historical EUR performance"
+    },
+    {
+      "id": "C35_METALS_20261013_BREAKOUT55_BASE",
+      "strategy": "BREAKOUT55",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_BREAKOUT55_COST2",
+      "strategy": "BREAKOUT55",
+      "cost_multiplier": 2,
+      "sensitivity": 1,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_BREAKOUT55_COST3",
+      "strategy": "BREAKOUT55",
+      "cost_multiplier": 3,
+      "sensitivity": 1,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_BREAKOUT55_SENS08",
+      "strategy": "BREAKOUT55",
+      "cost_multiplier": 1,
+      "sensitivity": 0.8,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_BREAKOUT55_SENS12",
+      "strategy": "BREAKOUT55",
+      "cost_multiplier": 1,
+      "sensitivity": 1.2,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_BREAKOUT55_FEE500",
+      "strategy": "BREAKOUT55",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 550.0,
+      "min_fee": 1.375,
+      "commission_bps": 5,
+      "eur_capital_label": 500,
+      "fx": "Constant 1.10 USD/EUR illustrative fee conversion ONLY; not historical EUR performance"
+    },
+    {
+      "id": "C35_METALS_20261013_BREAKOUT55_FEE1000",
+      "strategy": "BREAKOUT55",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 1100.0,
+      "min_fee": 1.375,
+      "commission_bps": 5,
+      "eur_capital_label": 1000,
+      "fx": "Constant 1.10 USD/EUR illustrative fee conversion ONLY; not historical EUR performance"
+    },
+    {
+      "id": "C35_METALS_20261013_BREAKOUT55_FEE2000",
+      "strategy": "BREAKOUT55",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 2200.0,
+      "min_fee": 1.375,
+      "commission_bps": 5,
+      "eur_capital_label": 2000,
+      "fx": "Constant 1.10 USD/EUR illustrative fee conversion ONLY; not historical EUR performance"
+    },
+    {
+      "id": "C35_METALS_20261013_ORB30_BASE",
+      "strategy": "ORB30",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_ORB30_COST2",
+      "strategy": "ORB30",
+      "cost_multiplier": 2,
+      "sensitivity": 1,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_ORB30_COST3",
+      "strategy": "ORB30",
+      "cost_multiplier": 3,
+      "sensitivity": 1,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_ORB30_SENS08",
+      "strategy": "ORB30",
+      "cost_multiplier": 1,
+      "sensitivity": 0.8,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_ORB30_SENS12",
+      "strategy": "ORB30",
+      "cost_multiplier": 1,
+      "sensitivity": 1.2,
+      "initial_cash": 10000,
+      "min_fee": 0,
+      "commission_bps": 0
+    },
+    {
+      "id": "C35_METALS_20261013_ORB30_FEE500",
+      "strategy": "ORB30",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 550.0,
+      "min_fee": 1.375,
+      "commission_bps": 5,
+      "eur_capital_label": 500,
+      "fx": "Constant 1.10 USD/EUR illustrative fee conversion ONLY; not historical EUR performance"
+    },
+    {
+      "id": "C35_METALS_20261013_ORB30_FEE1000",
+      "strategy": "ORB30",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 1100.0,
+      "min_fee": 1.375,
+      "commission_bps": 5,
+      "eur_capital_label": 1000,
+      "fx": "Constant 1.10 USD/EUR illustrative fee conversion ONLY; not historical EUR performance"
+    },
+    {
+      "id": "C35_METALS_20261013_ORB30_FEE2000",
+      "strategy": "ORB30",
+      "cost_multiplier": 1,
+      "sensitivity": 1,
+      "initial_cash": 2200.0,
+      "min_fee": 1.375,
+      "commission_bps": 5,
+      "eur_capital_label": 2000,
+      "fx": "Constant 1.10 USD/EUR illustrative fee conversion ONLY; not historical EUR performance"
+    }
+  ],
+  "limitations": [
+    "US proxies are not EUR ETCs PHAU/PHAG and not futures or CFD",
+    "Annual fund costs embedded in market prices; no double subtraction",
+    "Historical EUR FX and actual whole-unit ETC sizing not modeled",
+    "No official Critic PASS: primary-universe gate is inapplicable; DSR/PBO not yet established",
+    "No order submission or application changes"
+  ]
+}

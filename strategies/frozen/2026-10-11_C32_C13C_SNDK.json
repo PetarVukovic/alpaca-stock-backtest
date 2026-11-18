@@ -1,0 +1,33 @@
+{
+  "id": "C32_C13C_SNDK_20261011",
+  "type": "original C13C transfer diagnostic; no parameter optimization",
+  "source": "strategies/frozen/2026-10-05_C13C_TREND_DIP5_TRAIL.json",
+  "data": "data/ohlcv/SNDK_1d.csv",
+  "data_sha256": "068ce59d45e7481e525f6277587a0af530303ea6a50877b6601cc925a9182719",
+  "engine_sha256": "96cbc9dca31a5fbc22675ed90f5ac6eb609853008fb05230f89731a75a3f1d8f",
+  "start": "2025-02-24",
+  "end": "2026-10-08",
+  "warmup": "all available post-2025 bars including when-issued February 13-21",
+  "profiles": [
+    {
+      "capital": 100,
+      "cap": 500
+    },
+    {
+      "capital": 500,
+      "cap": 500
+    },
+    {
+      "capital": 10000,
+      "cap": 10000
+    }
+  ],
+  "sizing": "all whole shares; 10000 profile explicitly lifts original 500 USD notional cap",
+  "currency": "USD, no EUR conversion",
+  "stress": [
+    3,
+    6
+  ],
+  "cost": "baseline 5bps roundtrip + USD0.01/share/side, multiplied by stress",
+  "status": "WATCH ONLY; no IS2016-2020 or WF2021-2023; no Critic PASS"
+}

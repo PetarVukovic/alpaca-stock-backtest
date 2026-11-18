@@ -1,0 +1,31 @@
+{
+  "id": "C17A_VOL_SQUEEZE",
+  "created": "2026-10-05",
+  "family": "volatility",
+  "hypothesis": "Nakon smirenja kolebanja slijedi proboj.",
+  "mechanism": "Kad kolebanje splasne, ulagači postanu nemarni; proboj nakon tišine često je nagao jer se potražnja nakupila.",
+  "persistence": "Kolebanje dolazi u klasterima, pa smirenje prethodi pokretu.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "volatility_breakout",
+    "vol_window": 20,
+    "lookback": 63,
+    "compression": 0.8
+  },
+  "exit": {
+    "type": "trailing",
+    "trailing_pct": 0.12
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}

@@ -2,7 +2,7 @@
 
 An MIT-licensed Python starter for building stock research tools with Alpaca. Run the CLI against historical US equity data using your own Alpaca credentials, or reuse the data-fetching and simulation functions in your own research SaaS.
 
-The repository implements a daily-bar CLI and a moving-average example. The SaaS components and MCP tools below are an integration design.
+The repository includes the original research engine, frozen strategy definitions, validation scripts, statistical Critic, tests and TradingView study scripts. The lightweight CLI remains available for a quick demonstration. The SaaS components and MCP tools below are an integration design.
 
 ## Quick start
 
@@ -16,6 +16,37 @@ python backtest.py AAPL MSFT --start 2020-01-01 --end 2024-12-31 \
 ```
 
 Pass one or more US equity tickers available from your Alpaca feed. Each ticker gets an independent simulation. Use `--feed sip` with the appropriate entitlement and `python backtest.py --help` for all options. Date bounds are inclusive New York session dates. Select a completed historical interval. The CLI prints JSON with return, maximum closing-equity drawdown, fill count, number of bars, actual first and last sessions, and whether the simulation ends with an open position.
+
+## Run the research engine
+
+On macOS or Linux, set the Alpaca credentials above and install the development dependencies. The research trial ledger uses POSIX file locking. Run this workflow in WSL on Windows.
+
+```sh
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+python scripts/pull_alpaca.py --symbols AAPL --timeframes 1Day --feed iex \
+  --start 2016-01-01 --end 2025-01-01
+python -m lab.run_all --ids PUBLIC_TREND_DEMO --daily-only --without-holdout
+python -m lab.critic.runner --id PUBLIC_TREND_DEMO
+```
+
+The data loader reads local CSVs and the validation command rejects invalid input before a run. The download script reads the Alpaca calendar and writes files once so an accidental refresh cannot replace frozen inputs. The sample strategy ID freezes an AAPL trend filter. To research another covered symbol, download it, copy the sample freeze, and change its filename, ID and universe before running that ID. Event-driven strategies require your own event calendar. Intraday research uses SIP data and the lab's regular-session conventions.
+
+### Research pipeline
+
+| Path | Purpose |
+| --- | --- |
+| `lab/engine.py`, `lab/costs.py`, `lab/metrics.py` | Event-driven simulation, execution costs, trade and equity metrics. |
+| `lab/strategies/`, `strategies/frozen/` | Entry and exit rules and immutable strategy definitions. |
+| `lab/run_all.py`, `lab/ledger.py` | Data gate, freeze hashes, local trial registration, period reports and diagnostic packages. |
+| `lab/critic/`, `lab/research/redteam/` | Quantitative acceptance checks and independent numerical backtest audit. |
+| `scripts/tradingview/` | Pine studies for visual comparison. |
+| `data/`, `reports/` | Local inputs and generated outputs. The repository provides folder structure for both. |
+
+The research engine separates 2016–2020 in-sample, 2021–2023 forward evaluation and 2024 onward holdout. This fixed split evaluates predeclared rules across periods. Use the methodological notes below to design rolling or expanding parameter selection. Every frozen ID is registered with a hash. Diagnostic packages include 2× cost stress, one-parameter-at-a-time ±20% sensitivity where supported, and checks for future-data leakage. The Critic requires evidence for its gates, including an independent audit for relevant rule types. Missing evidence can produce FAIL. The demo illustrates the workflow and carries no approval.
+
+Use `--without-holdout` during research. Remove it only when the decision to inspect the final holdout is recorded. The demo uses 5 bps round trip plus one tick per side, distinct from the lightweight CLI's per-fill basis-point flag.
 
 ## Architecture
 
@@ -57,7 +88,7 @@ Use the Alpaca tools for contextual questions about bars or snapshots. Expose yo
 3. **Stress the results.** Compare against a benchmark on the same dates and under comparable assumptions. Raise costs, perturb parameters, and break down results by symbol and regime. Record each trial so the number of attempts is visible when interpreting the best result.
 4. **Reserve a final holdout.** Keep its dates out of tuning and inspect it after strategy choices are fixed. Report return, drawdown, turnover, trade count and exposure alongside any risk-adjusted metric. Add spread, slippage, liquidity and sizing constraints when the intended use calls for them.
 
-Walk-forward orchestration, benchmarks and holdout reporting are extensions to implement on top of the example simulator.
+The lightweight SMA CLI returns a single-period result. Use the research engine for its fixed forward and holdout splits, benchmark strategies and Critic evidence.
 
 ## Contributing and license
 

@@ -1,0 +1,60 @@
+// COMPILED OK on the TradingView server (2026-10-14); behaviour not yet compared trade by trade with the lab engine.
+// TOP_N5_CRYPTO_HOURLY_TREND - Memory Lab TOP10 research set (2026-10-14). Research only, NOT a lab Critic PASS.
+// Replica of lab/top10/strategies/top_n5_crypto_hourly_trend.py. Use on the 1h chart of BINANCE:BTCUSDT, ETHUSDT or SOLUSDT.
+// The lab holds three assets in equal slots (1/3 of capital each); this script runs ONE asset with a 33.33% slot.
+// Small known differences vs the lab: ta.ema is seeded with an SMA (lab: first value), percentile uses linear interpolation (same as pandas).
+// No alerts, no orders to any broker: this is a Strategy Tester replica only.
+//@version=6
+strategy("TOP_N5_CRYPTO_HOURLY_TREND", overlay=true, initial_capital=10000,
+     default_qty_type=strategy.percent_of_equity, default_qty_value=33.3333,
+     commission_type=strategy.commission.percent, commission_value=0.10,   // lab cost: 10 bps per side for crypto
+     process_orders_on_close=false,                                         // decide at bar close, fill at NEXT bar open
+     pyramiding=0, margin_long=100, margin_short=100, calc_on_every_tick=false)
+
+// ---- Inputs = PARAMS defaults (declared before looking at results) ----
+fastLen     = input.int(24,   "fast EMA (bars)",           minval=1)
+slowLen     = input.int(96,   "slow EMA (bars)",           minval=2)
+volLen      = input.int(168,  "vol window (bars)",         minval=2)
+regimeLen   = input.int(2160, "regime window (bars)",      minval=10, maxval=5000)
+qLow        = input.float(0.25, "vol percentile low",  minval=0.01, maxval=0.49, step=0.01)
+qHigh       = input.float(0.75, "vol percentile high", minval=0.5,  maxval=0.99, step=0.01)
+
+// ---- Rule 1: trend = fast EMA above slow EMA (evaluated on the closed bar) ----
+fastEma = ta.ema(close, fastLen)
+slowEma = ta.ema(close, slowLen)
+trendUp = fastEma > slowEma
+
+// ---- Rule 2: realized volatility = stdev of hourly log returns (sample stdev, like pandas) ----
+logRet = math.log(close / close[1])
+vol    = ta.stdev(logRet, volLen, false)
+
+// ---- Rule 3: regime filter = vol inside its own trailing 25th..75th percentile band ----
+volLo = ta.percentile_linear_interpolation(vol, regimeLen, qLow * 100)
+volHi = ta.percentile_linear_interpolation(vol, regimeLen, qHigh * 100)
+middleVol = not na(volLo) and not na(volHi) and vol >= volLo and vol <= volHi
+
+// ---- Rule 4: hold while trend AND middle-band volatility; otherwise flat. Long only. ----
+wantLong = trendUp and middleVol
+if wantLong and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+if not wantLong and strategy.position_size > 0
+    strategy.close("Long")
+
+// ---- Plots ----
+plot(fastEma, "fast EMA", color=color.new(color.teal, 0))
+plot(slowEma, "slow EMA", color=color.new(color.orange, 0))
+bgcolor(wantLong ? color.new(color.green, 88) : na, title="signal on")
+plotshape(wantLong and not wantLong[1], "enter", shape.triangleup, location.belowbar, color.green, size=size.tiny)
+plotshape(not wantLong and wantLong[1], "exit", shape.triangledown, location.abovebar, color.red, size=size.tiny)
+
+// ---- Info table ----
+var table info = table.new(position.top_right, 2, 4, border_width=1)
+if barstate.islast
+    table.cell(info, 0, 0, "ID", text_color=color.white, bgcolor=color.gray)
+    table.cell(info, 1, 0, "TOP_N5_CRYPTO_HOURLY_TREND", text_color=color.white, bgcolor=color.gray)
+    table.cell(info, 0, 1, "trend up")
+    table.cell(info, 1, 1, trendUp ? "yes" : "no")
+    table.cell(info, 0, 2, "vol in middle band")
+    table.cell(info, 1, 2, middleVol ? "yes" : "no")
+    table.cell(info, 0, 3, "status")
+    table.cell(info, 1, 3, "research only, not Critic PASS")

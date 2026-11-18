@@ -1,0 +1,27 @@
+{
+  "id": "B3_EQUAL_BASKET",
+  "created": "2026-10-05",
+  "family": "baseline",
+  "hypothesis": "Osnovna linija: jednaka košarica MU, WDC i STX.",
+  "mechanism": "Nije hipoteza. Mjerilo raspršenosti: tri dionice umjesto jedne.",
+  "persistence": "Sektor se kreće zajedno (korelacije 0,56 do 0,73), pa raspršenost slabo štiti.",
+  "universe": [
+    "MU",
+    "WDC",
+    "STX"
+  ],
+  "timeframe": "daily",
+  "entry": {
+    "type": "equal_basket"
+  },
+  "exit": {
+    "type": "hold"
+  },
+  "max_notional_usd": 500.0,
+  "max_positions": 1,
+  "costs": {
+    "round_trip_bps": 5.0,
+    "tick_per_side": 1.0,
+    "stress_multiplier": 1.0
+  }
+}
